@@ -1,0 +1,11 @@
+{
+  "entity_id": "material:lfp",
+  "title": "Lithium Iron Phosphate (LFP)",
+  "sections": {
+    "evidence": "| Source | Claim | Confidence | Extracted |\n|--------|-------|-----------|----------|\n| papers/sample-lfp-001.md §3.2 | LFP shows 170 mAh/g | 0.92 | 2026-04-18 |",
+    "linked-entities": "- mechanism:sei — Solid Electrolyte Interphase\n- metric:capacity-retention — Capacity Retention",
+    "properties": "- Formula: LiFePO4\n- Crystal structure: Olivine\n- Material class: Cathode"
+  },
+  "auto_sections": ["evidence", "linked-entities", "properties"],
+  "human_sections": ["summary", "open-questions"]
+}

@@ -1,0 +1,17 @@
+{
+  "doc_id": "papers/sample-lfp-degradation",
+  "source_path": "/tmp/hermes-repos/llm-rag-private-src/Ozzstein-llm-rag-3a167132c4ab9591f6e8edd5dc789a9b5ae164f1/raw/papers/sample-lfp-degradation.md",
+  "content_hash": "sha256:6bcfbdc85cebdd84aa49f446277585213d380a32d83d3271ed0769b901e47edf",
+  "doc_type": "papers",
+  "title": null,
+  "authors": [],
+  "doi": null,
+  "arxiv_id": null,
+  "source_connector": "manual",
+  "fetched_at": "2026-04-23T21:31:39.124464Z",
+  "stages_completed": [
+    "ingested"
+  ],
+  "last_processed": "2026-04-23T21:31:39.124754Z",
+  "error": null
+}

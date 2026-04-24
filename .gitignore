@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.uv/
+dist/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+
+# Environment
+.env
+
+# Data — track structure, not large binary content
+retrieval/embeddings/
+graph/snapshots/*.graphml
+
+# OS
+.DS_Store
+Thumbs.db

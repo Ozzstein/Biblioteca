@@ -1,0 +1,68 @@
+materials:
+  LFP:
+    entity_id: "material:lfp"
+    aliases:
+      - LiFePO4
+      - lithium iron phosphate
+      - lithium ferrophosphate
+      - Li iron phosphate
+      - iron phosphate cathode
+
+  NMC811:
+    entity_id: "material:nmc811"
+    aliases:
+      - NMC 811
+      - NCM811
+      - Li[Ni0.8Mn0.1Co0.1]O2
+      - LiNi0.8Mn0.1Co0.1O2
+      - high-nickel NMC
+
+  NMC622:
+    entity_id: "material:nmc622"
+    aliases:
+      - NMC 622
+      - NCM622
+      - LiNi0.6Mn0.2Co0.2O2
+
+  graphite:
+    entity_id: "material:graphite"
+    aliases:
+      - natural graphite
+      - artificial graphite
+      - synthetic graphite
+      - MCMB
+      - mesocarbon microbeads
+
+  SEI:
+    entity_id: "mechanism:sei"
+    aliases:
+      - solid electrolyte interphase
+      - solid electrolyte interface
+      - SEI layer
+      - SEI film
+      - passivation layer
+
+processes:
+  calcination:
+    entity_id: "process:calcination"
+    aliases:
+      - sintering
+      - high-temperature treatment
+      - heat treatment
+      - annealing
+      - solid-state synthesis
+
+  electrochemical_cycling:
+    entity_id: "process:ec-cycling"
+    aliases:
+      - galvanostatic cycling
+      - charge-discharge cycling
+      - battery cycling
+      - cycle testing
+
+  coin_cell_assembly:
+    entity_id: "process:coin-cell-assembly"
+    aliases:
+      - CR2032 assembly
+      - half-cell assembly
+      - coin cell fabrication

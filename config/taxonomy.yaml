@@ -1,0 +1,72 @@
+material_classes:
+  cathode:
+    - LFP
+    - NMC811
+    - NMC622
+    - NMC532
+    - NCA
+    - LCO
+    - LNMO
+    - LMO
+    - LFMP
+  anode:
+    - graphite
+    - natural graphite
+    - artificial graphite
+    - silicon
+    - silicon-graphite composite
+    - lithium metal
+    - hard carbon
+    - LTO
+  electrolyte:
+    - LP30
+    - LP57
+    - LiPF6 in EC/DMC
+    - solid electrolyte
+    - polymer electrolyte
+    - LLZO
+    - LGPS
+  separator:
+    - polyethylene
+    - polypropylene
+    - Celgard 2325
+    - ceramic coated
+
+failure_mechanisms:
+  - capacity fade
+  - lithium plating
+  - electrolyte decomposition
+  - SEI growth
+  - cathode dissolution
+  - mechanical degradation
+  - particle cracking
+  - thermal runaway
+  - current collector corrosion
+  - lithium dendrite formation
+
+test_types:
+  - galvanostatic cycling
+  - cyclic voltammetry (CV)
+  - electrochemical impedance spectroscopy (EIS)
+  - GITT
+  - rate capability test
+  - calendar aging
+  - thermal characterization
+  - accelerating rate calorimetry (ARC)
+  - post-mortem analysis
+  - SEM
+  - TEM
+  - XRD
+  - XPS
+
+key_metrics:
+  - specific capacity (mAh/g)
+  - volumetric energy density (Wh/L)
+  - gravimetric energy density (Wh/kg)
+  - coulombic efficiency (%)
+  - capacity retention (%)
+  - DC internal resistance (mΩ)
+  - charge transfer resistance (Ω)
+  - cycle life (cycles)
+  - calendar life (years)
+  - C-rate capability

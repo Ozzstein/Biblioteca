@@ -1,0 +1,18 @@
+# Operational settings. API keys belong in .env, not here.
+
+pipeline:
+  chunk_size: 512
+  chunk_overlap: 64
+  relevance_threshold: 0.6
+
+supervisor:
+  interval_seconds: 60
+
+models:
+  bulk_extraction: claude-haiku-4-5-20251001
+  wiki_compilation: claude-sonnet-4-6
+  contradiction_detection: claude-opus-4-7
+  query_synthesis: claude-sonnet-4-6
+  deep_analysis: claude-opus-4-7
+  relevance_scoring: claude-haiku-4-5-20251001
+  supervisor: claude-sonnet-4-6

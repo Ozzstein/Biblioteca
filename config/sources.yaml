@@ -1,0 +1,51 @@
+research_topics:
+  - "LFP cycle life degradation"
+  - "solid electrolyte interphase formation"
+  - "silicon anode volume expansion"
+  - "lithium plating mechanisms"
+  - "NMC cathode structural stability"
+  - "battery thermal runaway prevention"
+  - "solid state electrolyte ionic conductivity"
+
+subagents:
+  arxiv:
+    enabled: true
+    schedule: "interval:hours=12"
+    max_results_per_query: 20
+    categories:
+      - "cond-mat.mtrl-sci"
+      - "physics.chem-ph"
+
+  semantic_scholar:
+    enabled: true
+    schedule: "interval:hours=24"
+    max_results_per_query: 15
+    monitor_citations_of: []
+
+  openalex:
+    enabled: true
+    schedule: "interval:hours=24"
+    max_results_per_query: 20
+
+  pubmed:
+    enabled: true
+    schedule: "interval:hours=48"
+    max_results_per_query: 10
+
+  unpaywall:
+    enabled: true
+    schedule: "on-demand"
+
+  firecrawl:
+    enabled: true
+    schedule: "on-demand"
+
+  google_scholar:
+    enabled: false
+    schedule: "interval:hours=24"
+    max_results_per_query: 10
+    backend: serpapi
+
+  elsevier:
+    enabled: false
+    schedule: "interval:hours=48"

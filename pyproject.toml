@@ -1,0 +1,67 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "llm-rag"
+version = "0.1.0"
+description = "Battery Research OS — autonomous research assistant for battery R&D"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.40.0",
+    "typer[all]>=0.12.0",
+    "chromadb>=0.5.0",
+    "sentence-transformers>=3.0.0",
+    "networkx[default]>=3.3",
+    "lxml>=5.0.0",
+    "pdfplumber>=0.11.0",
+    "python-frontmatter>=1.1.0",
+    "watchdog>=4.0.0",
+    "apscheduler>=3.10.0",
+    "httpx>=0.27.0",
+    "arxiv>=2.1.0",
+    "firecrawl-py>=1.0.0",
+    "pandas>=2.2.0",
+    "pydantic>=2.8.0",
+    "pydantic-settings>=2.4.0",
+    "pyyaml>=6.0.0",
+    "mcp>=1.0.0",
+    "claude-code-sdk>=0.0.25",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.6.0",
+    "mypy>=1.11.0",
+]
+scholar = [
+    "google-search-results>=2.4.2",
+]
+
+[project.scripts]
+llm-rag = "llm_rag.cli:app"
+llm-rag-corpus-io = "llm_rag.mcp.corpus_io:main"
+llm-rag-wiki-io = "llm_rag.mcp.wiki_io:main"
+llm-rag-graph-io = "llm_rag.mcp.graph_io:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/llm_rag"]
+
+[tool.ruff]
+src = ["src"]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"

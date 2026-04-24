@@ -1,0 +1,36 @@
+{
+  "add_nodes": [
+    {
+      "id": "material:lfp",
+      "entity_type": "Material",
+      "canonical_name": "Lithium Iron Phosphate",
+      "formula": "LiFePO4"
+    },
+    {
+      "id": "mechanism:sei",
+      "entity_type": "FailureMechanism",
+      "canonical_name": "Solid Electrolyte Interphase"
+    },
+    {
+      "id": "metric:capacity-retention",
+      "entity_type": "Metric",
+      "canonical_name": "Capacity Retention"
+    }
+  ],
+  "add_edges": [
+    {
+      "source": "mechanism:sei",
+      "target": "metric:capacity-retention",
+      "relation_type": "CAUSES",
+      "weight": 0.85
+    },
+    {
+      "source": "material:lfp",
+      "target": "mechanism:sei",
+      "relation_type": "ASSOCIATED_WITH",
+      "weight": 0.78
+    }
+  ],
+  "remove_nodes": [],
+  "remove_edges": []
+}

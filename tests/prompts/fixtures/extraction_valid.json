@@ -1,0 +1,46 @@
+{
+  "entities": [
+    {
+      "entity_id": "material:lfp",
+      "name": "Lithium Iron Phosphate",
+      "entity_type": "Material",
+      "aliases": ["LFP", "LiFePO4"],
+      "source_chunks": ["papers/sample-lfp-001:chunk-0", "papers/sample-lfp-001:chunk-1"],
+      "confidence": 0.95
+    },
+    {
+      "entity_id": "mechanism:sei",
+      "name": "Solid Electrolyte Interphase",
+      "entity_type": "FailureMechanism",
+      "aliases": ["SEI", "SEI layer"],
+      "source_chunks": ["papers/sample-lfp-001:chunk-3"],
+      "confidence": 0.88
+    },
+    {
+      "entity_id": "metric:capacity-retention",
+      "name": "Capacity Retention",
+      "entity_type": "Metric",
+      "aliases": [],
+      "source_chunks": ["papers/sample-lfp-001:chunk-2"],
+      "confidence": 0.92
+    }
+  ],
+  "relations": [
+    {
+      "relation_id": "rel:sei-causes-fade-001",
+      "subject_id": "mechanism:sei",
+      "predicate": "CAUSES",
+      "object_id": "metric:capacity-retention",
+      "source_chunks": ["papers/sample-lfp-001:chunk-3"],
+      "confidence": 0.85
+    },
+    {
+      "relation_id": "rel:lfp-uses-material-001",
+      "subject_id": "material:lfp",
+      "predicate": "ASSOCIATED_WITH",
+      "object_id": "mechanism:sei",
+      "source_chunks": ["papers/sample-lfp-001:chunk-1"],
+      "confidence": 0.78
+    }
+  ]
+}

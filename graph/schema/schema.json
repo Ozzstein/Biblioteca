@@ -1,0 +1,29 @@
+{
+  "version": "1.1",
+  "entity_types": [
+    "Document", "Project", "Material", "Process", "Component",
+    "Formulation", "Cell", "TestCondition", "Metric", "Property",
+    "FailureMechanism", "Dataset", "Experiment", "Claim"
+  ],
+  "relation_types": [
+    "MENTIONS", "USES_MATERIAL", "USES_PROCESS", "PRODUCES_PROPERTY",
+    "MEASURED_BY", "TESTED_UNDER", "AFFECTS", "ASSOCIATED_WITH",
+    "CAUSES", "MITIGATES", "CONTRADICTS", "SUPPORTED_BY",
+    "DERIVED_FROM", "PART_OF", "SIMULATED_BY"
+  ],
+  "node_required_fields": ["entity_id", "entity_type", "canonical_name"],
+  "node_provenance_fields": {
+    "aliases": {"type": "json_array", "description": "JSON-encoded list of alias strings"},
+    "source_doc_ids": {"type": "json_array", "description": "JSON-encoded list of source document IDs"},
+    "evidence_chunk_ids": {"type": "json_array", "description": "JSON-encoded list of supporting chunk IDs"},
+    "confidence": {"type": "float", "description": "Max confidence score from provenance records (0.0-1.0)"},
+    "created_at": {"type": "iso8601", "description": "Earliest provenance timestamp"},
+    "updated_at": {"type": "iso8601", "description": "Latest provenance timestamp"}
+  },
+  "edge_required_fields": ["relation_id", "relation_type", "source_entity_id", "target_entity_id"],
+  "edge_provenance_fields": {
+    "source_doc_ids": {"type": "json_array", "description": "JSON-encoded list of source document IDs"},
+    "confidence": {"type": "float", "description": "Max confidence score from provenance records (0.0-1.0)"}
+  },
+  "neo4j_note": "This schema maps directly to Neo4j node labels and relationship types. entity_id is the unique node key. JSON array fields should be converted to native lists on import."
+}
