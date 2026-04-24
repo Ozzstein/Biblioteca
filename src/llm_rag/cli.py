@@ -14,6 +14,8 @@ from llm_rag.config import get_settings
 app = typer.Typer(name="llm-rag")
 pipeline_app = typer.Typer(name="pipeline", help="Pipeline processing commands.")
 app.add_typer(pipeline_app, name="pipeline")
+supervisor_app = typer.Typer(name="supervisor", help="Supervisor daemon commands.")
+app.add_typer(supervisor_app, name="supervisor")
 
 
 def _resolve_source_path(
@@ -420,3 +422,263 @@ def run(
         typer.echo(f"Error: {exc}", err=True)
         raise SystemExit(1)
     typer.echo("Pipeline complete.")
+
+
+# --- Supervisor commands ---
+
+
+@supervisor_app.callback()
+def supervisor_main() -> None:
+    """Supervisor daemon commands."""
+
+
+@supervisor_app.command("start")
+def supervisor_start(
+    interval: int = typer.Option(60, help="Poll interval in seconds"),
+    foreground: bool = typer.Option(False, help="Run in foreground (don't daemonize)"),
+) -> None:
+    """Start the autonomous supervisor loop."""
+    import os
+    import signal
+
+    import yaml
+
+    from llm_rag.supervisor.shutdown import ShutdownManager, ShutdownReason
+    from llm_rag.supervisor.state import (
+        SupervisorState,
+        is_running,
+        now_iso,
+        save_pid,
+        save_state,
+    )
+
+    settings = get_settings()
+    pid_file = settings.root_dir / ".supervisor" / "supervisor.pid"
+    state_file = settings.root_dir / ".supervisor" / "state.json"
+
+    if is_running(pid_file):
+        typer.echo("Supervisor is already running.")
+        raise SystemExit(1)
+
+    # Load sources config
+    sources_path = settings.config_dir / "sources.yaml"
+    if sources_path.exists():
+        sources_config = yaml.safe_load(sources_path.read_text()) or {}
+    else:
+        sources_config = {}
+
+    topics = [t["query"] for t in sources_config.get("research_topics", []) if "query" in t]
+
+    if not foreground:
+        # Fork into background
+        child_pid = os.fork()
+        if child_pid != 0:
+            # Parent: save PID and exit
+            save_pid(child_pid, pid_file)
+            state = SupervisorState(
+                pid=child_pid,
+                start_time=now_iso(),
+                last_heartbeat=now_iso(),
+            )
+            save_state(state, state_file)
+            typer.echo(f"Supervisor started (PID {child_pid}).")
+            return
+
+        # Child: detach from terminal
+        os.setsid()
+
+    pid = os.getpid()
+    save_pid(pid, pid_file)
+    state = SupervisorState(
+        pid=pid,
+        start_time=now_iso(),
+        last_heartbeat=now_iso(),
+    )
+    save_state(state, state_file)
+
+    if foreground:
+        typer.echo(f"Supervisor started in foreground (PID {pid}).")
+
+    import logging
+
+    from llm_rag.supervisor.loop import SupervisorAgent
+    from llm_rag.supervisor.state import clear_pid
+    from llm_rag.supervisor.watcher import InboxWatcher
+    from llm_rag.utils.logging_config import configure_logging
+
+    # Configure structured logging — JSON to file, colored to console in foreground
+    log_file = settings.root_dir / ".supervisor" / "supervisor.log"
+    configure_logging(
+        log_file=log_file,
+        level=logging.DEBUG if foreground else logging.INFO,
+        foreground=foreground,
+    )
+
+    cli_logger = logging.getLogger("llm_rag.cli")
+
+    shutdown_mgr = ShutdownManager()
+
+    supervisor = SupervisorAgent(
+        raw_dir=settings.raw_dir,
+        settings=settings,
+        interval_seconds=interval,
+        supervisor_state=state,
+        state_file=state_file,
+        shutdown_manager=shutdown_mgr,
+        pid_file=pid_file,
+    )
+
+    # Start inbox watcher
+    inbox_path = settings.raw_dir / "inbox"
+    inbox_path.mkdir(parents=True, exist_ok=True)
+    watcher = InboxWatcher(inbox_path, supervisor.file_queue)
+    watcher.start()
+
+    # Start research scheduler if topics available
+    if topics:
+        try:
+            from llm_rag.research.coordinator import ResearchAgent
+
+            research_agent = ResearchAgent(settings)
+            supervisor.start_scheduler(topics, sources_config, research_agent)
+        except Exception:
+            pass  # research agent may not be fully wired
+
+    # Register signal handlers for graceful shutdown
+    shutdown_mgr.register_signals()
+    # Also handle SIGHUP for terminal disconnect
+    signal.signal(signal.SIGHUP, shutdown_mgr._handle_signal)
+
+    try:
+        while not shutdown_mgr.is_shutting_down:
+            # Update heartbeat
+            state.last_heartbeat = now_iso()
+            save_state(state, state_file)
+
+            # Run one supervisor cycle
+            try:
+                asyncio.run(supervisor._run_cycle())
+            except Exception:
+                state.errors += 1
+
+            if shutdown_mgr.is_shutting_down:
+                break
+
+            import time
+            time.sleep(interval)
+    finally:
+        reason = shutdown_mgr.reason or ShutdownReason.MANUAL
+        cli_logger.info("Initiating graceful shutdown (reason=%s)", reason.value)
+
+        # Run graceful shutdown with a timeout
+        try:
+            asyncio.run(
+                asyncio.wait_for(
+                    supervisor.graceful_shutdown(reason),
+                    timeout=ShutdownManager.SHUTDOWN_TIMEOUT,
+                )
+            )
+        except (TimeoutError, asyncio.TimeoutError):
+            cli_logger.warning("Shutdown timed out after %ss — forcing exit", ShutdownManager.SHUTDOWN_TIMEOUT)
+
+        watcher.stop()
+        # Ensure PID is cleared even if graceful_shutdown didn't do it
+        clear_pid(pid_file)
+        state.last_heartbeat = now_iso()
+        save_state(state, state_file)
+        shutdown_mgr.unregister_signals()
+        cli_logger.info("Supervisor shut down cleanly")
+
+
+@supervisor_app.command("stop")
+def supervisor_stop() -> None:
+    """Stop the running supervisor daemon."""
+    from llm_rag.supervisor.state import (
+        clear_pid,
+        is_running,
+        load_pid,
+        send_stop_signal,
+    )
+
+    settings = get_settings()
+    pid_file = settings.root_dir / ".supervisor" / "supervisor.pid"
+
+    if not is_running(pid_file):
+        typer.echo("Supervisor is not running.")
+        raise SystemExit(1)
+
+    pid = load_pid(pid_file)
+    if send_stop_signal(pid_file):
+        typer.echo(f"Sent stop signal to supervisor (PID {pid}).")
+        clear_pid(pid_file)
+    else:
+        typer.echo("Failed to stop supervisor.")
+        raise SystemExit(1)
+
+
+@supervisor_app.command("status")
+def supervisor_status() -> None:
+    """Show supervisor running state and health."""
+    from llm_rag.supervisor.state import HealthStatus, is_running, load_pid, load_state
+
+    settings = get_settings()
+    pid_file = settings.root_dir / ".supervisor" / "supervisor.pid"
+    state_file = settings.root_dir / ".supervisor" / "state.json"
+
+    running = is_running(pid_file)
+    pid = load_pid(pid_file)
+    state = load_state(state_file)
+
+    _STATUS_BADGES = {
+        HealthStatus.HEALTHY: "[HEALTHY]",
+        HealthStatus.DEGRADED: "[DEGRADED]",
+        HealthStatus.UNHEALTHY: "[UNHEALTHY]",
+    }
+
+    typer.echo("Supervisor Status")
+    typer.echo("─" * 40)
+    typer.echo(f"  Running:          {'yes' if running else 'no'}")
+    typer.echo(f"  PID:              {pid or 'N/A'}")
+
+    if state:
+        health = state.health_status
+        badge = _STATUS_BADGES[health]
+        typer.echo(f"  Health:           {badge}")
+
+        age = state.heartbeat_age()
+        if age == float("inf"):
+            age_str = "never"
+        elif age < 60:
+            age_str = f"{age:.0f}s ago"
+        elif age < 3600:
+            age_str = f"{age / 60:.1f}m ago"
+        else:
+            age_str = f"{age / 3600:.1f}h ago"
+        typer.echo(f"  Heartbeat:        {age_str}")
+
+        typer.echo(f"  Start time:       {state.start_time or 'N/A'}")
+        typer.echo(f"  Last heartbeat:   {state.last_heartbeat or 'N/A'}")
+        typer.echo(f"  Files processed:  {state.files_processed}")
+        typer.echo(f"  Errors:           {state.errors}")
+        typer.echo(f"  Error rate:       {state.error_rate:.1%}")
+        if state.pending_files:
+            typer.echo(f"  Pending files:    {len(state.pending_files)}")
+            for f in state.pending_files[:10]:
+                typer.echo(f"    - {f}")
+        else:
+            typer.echo("  Pending files:    0")
+
+        if state.subagent_health:
+            typer.echo("")
+            typer.echo("Subagent Health")
+            typer.echo("─" * 40)
+            for name, sh in sorted(state.subagent_health.items()):
+                sub_badge = _STATUS_BADGES[sh.status]
+                typer.echo(f"  {name}:")
+                typer.echo(f"    Status:       {sub_badge}")
+                typer.echo(f"    Last run:     {sh.last_run or 'never'}")
+                typer.echo(f"    Success rate: {sh.success_rate:.1%}")
+                typer.echo(f"    Total runs:   {sh.total_runs}")
+                typer.echo(f"    Failures:     {sh.consecutive_failures} consecutive")
+    else:
+        typer.echo("  No state file found.")

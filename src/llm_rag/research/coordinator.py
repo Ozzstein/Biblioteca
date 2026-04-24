@@ -52,9 +52,23 @@ class ResearchAgent:
             max_tokens=64,
         )
 
-    async def run(self, topics: list[str]) -> list[Path]:
+    async def run(
+        self,
+        topics: list[str],
+        subagent_names: list[str] | None = None,
+    ) -> list[Path]:
+        """Run research across subagents.
+
+        Args:
+            topics: Research topics to search for.
+            subagent_names: If provided, only run subagents whose class name
+                matches (case-insensitive, with 'Subagent' suffix stripped).
+                E.g. ["arxiv", "pubmed"] runs ArXivSubagent and PubMedSubagent.
+                If None, all subagents are run.
+        """
+        active = self._filter_subagents(subagent_names)
         candidates: list[CandidateDocument] = []
-        for subagent in self.subagents:
+        for subagent in active:
             try:
                 found = await subagent.search(topics)
                 candidates.extend(found)
@@ -91,6 +105,34 @@ class ResearchAgent:
                         "Fetch failed from %s: %s", type(subagent).__name__, exc
                     )
         return written
+
+    @staticmethod
+    def subagent_key(subagent: SourceSubagent) -> str:
+        """Derive a config key from a subagent class name.
+
+        ArXivSubagent → 'arxiv', SemanticScholarSubagent → 'semantic_scholar'.
+        """
+        name = type(subagent).__name__
+        # Strip 'Subagent' suffix
+        if name.endswith("Subagent"):
+            name = name[: -len("Subagent")]
+        # CamelCase → snake_case
+        result: list[str] = []
+        for i, ch in enumerate(name):
+            if ch.isupper() and i > 0:
+                result.append("_")
+            result.append(ch.lower())
+        return "".join(result)
+
+    def _filter_subagents(
+        self, subagent_names: list[str] | None
+    ) -> list[SourceSubagent]:
+        if subagent_names is None:
+            return self.subagents
+        names_lower = {n.lower() for n in subagent_names}
+        return [
+            s for s in self.subagents if self.subagent_key(s) in names_lower
+        ]
 
     def _deduplicate(self, candidates: list[CandidateDocument]) -> list[CandidateDocument]:
         seen: set[str] = set()

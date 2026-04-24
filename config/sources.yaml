@@ -2,50 +2,29 @@ research_topics:
   - "LFP cycle life degradation"
   - "solid electrolyte interphase formation"
   - "silicon anode volume expansion"
-  - "lithium plating mechanisms"
-  - "NMC cathode structural stability"
-  - "battery thermal runaway prevention"
-  - "solid state electrolyte ionic conductivity"
+  # add your own topics here
 
 subagents:
   arxiv:
     enabled: true
-    schedule: "interval:hours=12"
-    max_results_per_query: 20
-    categories:
-      - "cond-mat.mtrl-sci"
-      - "physics.chem-ph"
-
+    schedule: "interval:hours=12"  # run every 12 hours
   semantic_scholar:
     enabled: true
-    schedule: "interval:hours=24"
-    max_results_per_query: 15
-    monitor_citations_of: []
-
+    schedule: "interval:hours=6"   # run every 6 hours
   openalex:
-    enabled: true
-    schedule: "interval:hours=24"
-    max_results_per_query: 20
-
+    enabled: false
+    schedule: "interval:days=1"    # run daily
   pubmed:
-    enabled: true
-    schedule: "interval:hours=48"
-    max_results_per_query: 10
-
+    enabled: false
+    schedule: "interval:days=1"
   unpaywall:
-    enabled: true
-    schedule: "on-demand"
-
+    enabled: false
+    schedule: "interval:hours=24"
   firecrawl:
-    enabled: true
-    schedule: "on-demand"
-
+    enabled: false
+    schedule: "interval:hours=4"
   google_scholar:
     enabled: false
-    schedule: "interval:hours=24"
-    max_results_per_query: 10
-    backend: serpapi
-
-  elsevier:
-    enabled: false
-    schedule: "interval:hours=48"
+    schedule: "interval:days=1"
+  # schedule format: "interval:<unit>=<value>" where unit is seconds/minutes/hours/days
+  # or "on-demand" to disable automatic scheduling (manual trigger only)
