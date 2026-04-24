@@ -3,9 +3,10 @@
 **Production-ready V2 RAG pipeline** for battery R&D knowledge management. Extracts structured knowledge from documents using Claude, maintains a human-readable markdown wiki, builds a NetworkX knowledge graph, and answers queries with full provenance citations — all running locally with **544 passing tests**.
 
 ```
-Status: ✅ Production-Ready (Phases 0-4 Complete)
+Status: ✅ Production-Ready (Phases 0-5 Complete)
 Tests: 544 passed, 1 skipped
 Architecture: V2 (Evidence → Claims → Graph/Wiki Projections)
+Supervisor: Autonomous loop with APScheduler + watchdog
 ```
 
 ---
@@ -199,8 +200,9 @@ uv run llm-rag ask "what causes LFP capacity fade?"
 
 | Agent | Role | Input | Output | Frequency |
 |-------|------|-------|--------|-----------|
-| **ResearchAgent** | Fetch new papers from 6 sources | Research topics (YAML) | `raw/inbox/*.md`, `*.pdf` | Scheduled (60s) |
-| **PipelineRunner** | Process documents through 4 stages | `raw/inbox/` files | `ClaimCollection` JSON | On `ingest` command |
+| **SupervisorAgent** | Orchestrate autonomous loop | System state + file events | Dispatch queue + health state | Continuous (configurable interval) |
+| **ResearchAgent** | Fetch new papers from 7 sources | Research topics (YAML) | `raw/inbox/*.md`, `*.pdf` | APScheduler (per `sources.yaml`) |
+| **PipelineRunner** | Process documents through 4 stages | `raw/inbox/` files | `ClaimCollection` JSON | On `ingest` or watchdog trigger |
 | **GraphMaterializer** | Build knowledge graph from claims | `ClaimCollection` | `graph/exports/latest.graphml` | On `materialize graph` |
 | **WikiMaterializer** | Generate wiki pages from claims+evidence | `ClaimCollection` + `EvidenceStore` | `wiki/*.md` | On `materialize wiki` |
 | **QueryAgent** | Answer user questions with citations | User query | Answer + `[EVIDENCE:]`, `[WIKI:]`, `[GRAPH:]` markers | On `ask` command |
@@ -220,9 +222,10 @@ uv run llm-rag ask "what causes LFP capacity fade?"
 ┌─────────────────────────────────────────────────────────────────┐
 │                    ASYNCHRONOUS (Scheduled)                     │
 ├─────────────────────────────────────────────────────────────────┤
-│  APScheduler (60s) ──▶ ResearchAgent ──▶ raw/inbox/            │
-│  watchdog (file events) ──▶ PipelineRunner ──▶ ClaimCollection │
-│  (Phase 5: autonomous supervisor loop)                          │
+│  SupervisorAgent (Phase 5):                                     │
+│    APScheduler ──▶ ResearchAgent subagents ──▶ raw/inbox/      │
+│    watchdog (file events) ──▶ PipelineRunner ──▶ ClaimCollection │
+│    Heartbeat + health tracking ──▶ .supervisor/state.json       │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -235,6 +238,51 @@ uv run llm-rag ask "what causes LFP capacity fade?"
 | `llm-rag materialize all` | Rebuild both graph and wiki |
 | `llm-rag build-graph` | Alias for `materialize graph` |
 | `llm-rag compile-wiki` | Alias for `materialize wiki` |
+
+### Supervisor Loop (Phase 5)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        SUPERVISOR LOOP (Phase 5)                            │
+│                                                                             │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────────────┐   │
+│  │  APScheduler │    │   watchdog   │    │     ShutdownManager         │   │
+│  │              │    │              │    │                              │   │
+│  │  Schedules   │    │  Monitors    │    │  SIGTERM/SIGINT/SIGHUP →    │   │
+│  │  subagents   │    │  raw/inbox/  │    │  graceful drain + cleanup   │   │
+│  │  per config  │    │  for new     │    │  30s timeout                │   │
+│  │  (sources    │    │  files       │    │                              │   │
+│  │   .yaml)     │    │              │    └──────────────────────────────┘   │
+│  └──────┬───────┘    └──────┬───────┘                                      │
+│         │                   │                                               │
+│         ▼                   ▼                                               │
+│  ┌──────────────────────────────────────┐                                   │
+│  │         SupervisorAgent              │                                   │
+│  │                                      │                                   │
+│  │  - Heartbeat tracking (state.json)   │                                   │
+│  │  - Error rate monitoring             │                                   │
+│  │  - Subagent health tracking          │                                   │
+│  │  - PID file management               │                                   │
+│  └──────────────┬───────────────────────┘                                   │
+│                 │                                                            │
+│         ┌───────┴───────┐                                                   │
+│         ▼               ▼                                                   │
+│  ┌────────────┐  ┌──────────────┐                                          │
+│  │ Research   │  │ Pipeline     │                                          │
+│  │ Agent      │  │ Runner       │                                          │
+│  │ (fetch)    │  │ (ingest)     │                                          │
+│  └────────────┘  └──────────────┘                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Subagent scheduling** is driven by `config/sources.yaml`. Each subagent has an `enabled` flag and a `schedule` string (e.g., `interval:hours=12`). APScheduler dispatches enabled subagents at the configured intervals to fetch new papers matching your research topics.
+
+**Health monitoring** aggregates three signals into an overall health status:
+- **Heartbeat**: updated every cycle. <60s = HEALTHY, <300s = DEGRADED, >300s = UNHEALTHY
+- **Error rate**: errors / (files_processed + errors). <10% = HEALTHY, <50% = DEGRADED, >50% = UNHEALTHY
+- **Subagent health**: per-subagent tracking of consecutive failures and success rate
+
+**Graceful shutdown**: the supervisor handles SIGTERM, SIGINT, and SIGHUP signals. On receiving a signal, it finishes the current cycle, drains pending work, cleans up the PID file, and exits within a 30-second timeout.
 
 ### Key V2 Principles
 
@@ -303,6 +351,44 @@ research_topics:
 
 **Entity normalization** — add aliases to `config/entity-normalization.yaml` as you encounter inconsistent naming in your corpus.
 
+**Supervisor scheduling** — edit `config/sources.yaml` to control subagent schedules:
+
+```yaml
+subagents:
+  arxiv:
+    enabled: true
+    schedule: "interval:hours=12"     # every 12 hours
+  semantic_scholar:
+    enabled: true
+    schedule: "interval:hours=6"      # every 6 hours
+  openalex:
+    enabled: false                    # disabled — set true to activate
+    schedule: "interval:days=1"
+  # Format: "interval:<unit>=<value>" where unit is seconds/minutes/hours/days
+```
+
+**Health thresholds** (not user-configurable, defined in code):
+
+| Signal | HEALTHY | DEGRADED | UNHEALTHY |
+|--------|---------|----------|-----------|
+| Heartbeat age | <60s | 60–300s | >300s |
+| Error rate | <10% | 10–50% | >50% |
+| Subagent consecutive failures | 0–3 | 4–5 | >5 |
+
+---
+
+## Troubleshooting (Supervisor)
+
+| Problem | Solution |
+|---------|----------|
+| Supervisor won't start | Check `llm-rag supervisor status` — may already be running |
+| Status shows DEGRADED/UNHEALTHY | Check `.supervisor/supervisor.log` for errors |
+| Subagent failing repeatedly | Verify API keys in `.env`; check subagent health in status output |
+| Want to pause a source | Set `enabled: false` in `config/sources.yaml` and restart supervisor |
+| Logs location | `.supervisor/supervisor.log` (JSON format, rotated) |
+| State/PID files | `~/.llm-rag/supervisor/state.json` and `supervisor.pid` |
+| Force stop stale process | Delete `.supervisor/supervisor.pid` if process is already dead |
+
 ---
 
 ## Key Commands
@@ -327,6 +413,41 @@ uv run llm-rag pipeline run --force
 uv run llm-rag ask "what causes LFP capacity fade?"
 uv run llm-rag ask "compare LFP vs NMC cycle life" --mode hybrid --verbose
 uv run llm-rag ask "dominant failure mechanisms in NMC811" --quality
+```
+
+### Supervisor (Phase 5)
+```bash
+uv run llm-rag supervisor start               # start autonomous loop (daemonizes)
+uv run llm-rag supervisor start --interval 30  # poll every 30 seconds
+uv run llm-rag supervisor start --foreground   # run in foreground (logs to console)
+uv run llm-rag supervisor stop                 # send stop signal to running daemon
+uv run llm-rag supervisor status               # show health, heartbeat, error rate
+```
+
+**Example output:**
+```
+# Start
+Supervisor started (PID 264864).
+
+# Already running
+Supervisor is already running.
+
+# Stop
+Sent stop signal to supervisor (PID 264864).
+
+# Status
+Supervisor Status
+────────────────────────────────────────
+  Running:          yes
+  PID:              264864
+  Health:           [HEALTHY]
+  Heartbeat:        1s ago
+  Start time:       2026-04-24T17:01:05.336732+00:00
+  Last heartbeat:   2026-04-24T17:01:05.336804+00:00
+  Files processed:  0
+  Errors:           0
+  Error rate:       0.0%
+  Pending files:    0
 ```
 
 ### Materialization (V2)
@@ -365,6 +486,11 @@ Biblioteca/
 │   │   └── writer.py          # Template-based page generation
 │   ├── query/
 │   │   └── agent.py           # Phased retrieval + citation-aware synthesis
+│   ├── supervisor/
+│   │   ├── loop.py            # SupervisorAgent — APScheduler + main cycle
+│   │   ├── watcher.py         # watchdog FileSystemEventHandler for raw/inbox/
+│   │   ├── state.py           # PID file, state.json, health tracking
+│   │   └── shutdown.py        # Graceful shutdown (SIGTERM/SIGINT/SIGHUP)
 │   ├── mcp/
 │   │   ├── graph_io.py        # Graph MCP tools
 │   │   ├── wiki_io.py         # Wiki MCP tools
@@ -372,7 +498,8 @@ Biblioteca/
 │   └── utils/
 │       ├── chunking.py        # Token-aware text splitting
 │       ├── retry.py           # Exponential backoff decorator
-│       └── hashing.py         # Content deduplication
+│       ├── hashing.py         # Content deduplication
+│       └── logging_config.py  # Structured logging (JSON file + console)
 ├── config/
 │   ├── settings.yaml          # Model assignments, pipeline params
 │   ├── sources.yaml           # Research topics to monitor
@@ -385,6 +512,7 @@ Biblioteca/
 │   ├── wiki/                  # Materializer, reader, writer
 │   ├── query/                 # QueryAgent, citations
 │   ├── pipeline/              # Contracts, runner, manifest
+│   ├── supervisor/            # Supervisor loop, health, shutdown, state tests
 │   └── test_cli.py            # CLI integration tests
 └── docs/
     ├── architecture/
@@ -416,16 +544,18 @@ uv run pytest tests/ -q
 
 ## Roadmap
 
-### ✅ Completed (Phases 0-4)
+### ✅ Completed (Phases 0-5)
 - [x] CLI with all core commands
 - [x] Typed pipeline contracts with validation
 - [x] Knowledge integrity (templates, normalization, provenance)
 - [x] Multilayer query orchestration
 - [x] V2 architecture (evidence → claims → projections)
+- [x] Autonomous supervisor loop (APScheduler + watchdog)
+- [x] Research subagent scheduling (arXiv, Semantic Scholar, PubMed, etc.)
+- [x] Health monitoring (heartbeat, error rate, subagent health)
+- [x] Graceful shutdown (SIGTERM/SIGINT/SIGHUP with 30s timeout)
 
-### 🔄 Next (Phase 5+)
-- [ ] Autonomous supervisor loop (APScheduler + watchdog)
-- [ ] Research subagents (arXiv, Semantic Scholar, PubMed polling)
+### 🔄 Next (Phase 6+)
 - [ ] Neo4j graph backend migration
 - [ ] Web UI for query/browse
 - [ ] Docker containerization
