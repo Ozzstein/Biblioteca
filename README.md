@@ -40,60 +40,82 @@ uv run llm-rag ingest
 uv run llm-rag ask "what causes LFP capacity fade?"
 ```
 
-**Query options:**
+**Ask options:**
 - `--quality` — use Opus for deep analysis
 - `--verbose` — show retrieval trace and citations
+- `--mode hybrid` — combine evidence + wiki + graph retrieval
 
 ---
 
 ## Architecture
 
+### V2 Data Flow (Current)
+
 ```
-                    ┌──────────────────────────────────────────────┐
-                    │         SupervisorAgent (APScheduler)         │
-                    │  polls every 60s, dispatches pending work     │
-                    └──────────────┬───────────────────────────────┘
-                                   │ dispatches
-             ┌─────────────────────┼──────────────────────┐
-             │                     │                      │
-             ▼                     ▼                      ▼
- ┌──────────────────┐   ┌────────────────────────┐  ┌──────────────────┐
- │  ResearchAgent   │   │     PipelineRunner     │  │  ReviewerAgent   │
- │  + Subagents     │   │  (sequential + retry)  │  │  (post-pipeline) │
- │                  │   │                        │  └──────────────────┘
- │  - arXiv         │   │  Stage 1: Ingestion    │
- │  - SemanticSchol.│   │  Stage 2: Extraction   │
- │  - OpenAlex      │   │  Stage 3: Normalization│
- │  - PubMed        │   │  Stage 4: Wiki Compile │
- │  - Unpaywall     │   │  Stage 5: Graph Update │
- │  - Firecrawl     │   └──────────┬─────────────┘
- └────────┬─────────┘              │
-          │                        │ writes via MCP tools
-          ▼                        ▼
-     raw/inbox/       ┌────────────────────────────────────┐
-     (drop zone)      │         Three Data Stores          │
-                      │                                    │
-                      │  wiki/        ← understanding      │
-                      │  graph/       ← relations          │
-                      │  retrieval/   ← evidence + vectors │
-                      └────────────────────┬───────────────┘
-                                           │
-                      ┌────────────────────▼───────────────┐
-                      │           QueryAgent                │
-                      │  phased retrieval + synthesis       │
-                      │  evidence → wiki → graph → answer   │
-                      │                                     │
-                      │  llm-rag ask "your question"        │
-                      └─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           DOCUMENT INGESTION                                │
+│  raw/inbox/ → PipelineRunner → EvidenceDocument + EvidenceChunk + Provenance│
+└────────────────────────────────────┬────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         CANONICAL EVIDENCE STORE                            │
+│  EvidenceStore (source of truth: documents, chunks, byte offsets, pages)    │
+└────────────────────────────────────┬────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        CLAIM EXTRACTION (Claude)                            │
+│  EntityClaim, RelationClaim, Fact (confidence ≥0.9, multi-evidence)         │
+│  ClaimCollection (document-scoped container with evidence references)       │
+└────────────────────────────────────┬────────────────────────────────────────┘
+                                     │
+                     ┌───────────────┴───────────────┐
+                     │                               │
+                     ▼                               ▼
+        ┌─────────────────────┐         ┌─────────────────────┐
+        │  GraphMaterializer  │         │  WikiMaterializer   │
+        │  (projection)       │         │  (projection)       │
+        │                     │         │                     │
+        │  Claims → Nodes     │         │  Claims + Evidence  │
+        │  Relations → Edges  │         │  → Wiki Pages       │
+        │  Deterministic      │         │  Preserves human    │
+        └──────────┬──────────┘         └──────────┬──────────┘
+                   │                               │
+                   ▼                               ▼
+        ┌─────────────────────┐         ┌─────────────────────┐
+        │   graph/exports/    │         │      wiki/          │
+        │   latest.graphml    │         │   (entity pages)    │
+        │   (NetworkX)        │         │   auto + human      │
+        └──────────┬──────────┘         └──────────┬──────────┘
+                   │                               │
+                   └───────────────┬───────────────┘
+                                   │
+                                   ▼
+        ┌─────────────────────────────────────────────────────────┐
+        │                    QueryAgent                            │
+        │  Phased retrieval: evidence → wiki → graph → synthesis   │
+        │  Citations: [EVIDENCE:doc:chunk] [WIKI:path] [GRAPH:id]  │
+        └─────────────────────────────────────────────────────────┘
 ```
 
-**Three data stores:**
+### Materialization Commands
 
-| Store | Role | Format |
-|---|---|---|
-| `wiki/` | System of understanding | Plain markdown, human-editable |
-| `graph/` | System of relations | NetworkX + JSON/GraphML |
-| `raw/` + `retrieval/` | System of evidence | Raw files + Chroma vector store |
+| Command | Description |
+|---------|-------------|
+| `llm-rag materialize graph` | Rebuild graph from ClaimCollection JSONs |
+| `llm-rag materialize wiki` | Rebuild wiki pages from claims + evidence |
+| `llm-rag materialize all` | Rebuild both graph and wiki |
+| `llm-rag build-graph` | Alias for `materialize graph` |
+| `llm-rag compile-wiki` | Alias for `materialize wiki` |
+
+### Key V2 Principles
+
+1. **Evidence is the source of truth** — All knowledge traces back to EvidenceDocument + EvidenceChunk
+2. **Claims are first-class** — EntityClaim, RelationClaim, Fact are explicit schemas (not buried in graph/wiki)
+3. **Graph & Wiki are projections** — Deterministically materialized from claims, rebuildable on demand
+4. **Human sections preserved** — Wiki `human-start`/`human-end` blocks survive regeneration
+5. **Backward compatible** — All existing CLI/MCP interfaces work unchanged
 
 ---
 
@@ -174,9 +196,14 @@ uv run llm-rag pipeline run --force
 uv run llm-rag ask "what causes LFP capacity fade?"
 uv run llm-rag ask "compare LFP vs NMC cycle life" --mode hybrid --verbose
 uv run llm-rag ask "dominant failure mechanisms in NMC811" --quality
-```
 
-**Note:** The autonomous supervisor loop (`llm-rag run`), source fetching (`fetch`), wiki compilation (`compile-wiki`), graph building (`build-graph`), and export commands are planned for future phases. Currently, use `ingest` and `pipeline run` to process documents manually.
+# Rebuild derived surfaces from canonical records
+uv run llm-rag materialize graph              # rebuild graph from claims
+uv run llm-rag materialize wiki               # rebuild wiki from claims + evidence
+uv run llm-rag materialize all                # rebuild both
+uv run llm-rag build-graph                    # alias for materialize graph
+uv run llm-rag compile-wiki                   # alias for materialize wiki
+```
 
 ---
 
