@@ -115,6 +115,117 @@ uv run llm-rag ask "what causes LFP capacity fade?"
         └─────────────────────────────────────────────────────────┘
 ```
 
+### Agent Interaction Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           AGENT ECOSYSTEM                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────┐         ┌─────────────────────────────────────────┐
+│   ResearchAgent      │         │          PipelineRunner                 │
+│   (fetches papers)   │         │      (processes documents)              │
+│                      │         │                                         │
+│  ┌────────────────┐  │         │  ┌───────────────────────────────────┐  │
+│  │ ArXivSubagent  │──┼─────────┼─▶│ Stage 1: Ingestion                │  │
+│  └────────────────┘  │         │  │   - PDF parsing (pdfplumber)      │  │
+│  ┌────────────────┐  │         │  │   - Chunking (512 tokens)         │  │
+│  │SemanticScholar │──┼─────────┼─▶│   - Embedding (sentence-transformers)│
+│  └────────────────┘  │         │  └──────────────┬────────────────────┘  │
+│  ┌────────────────┐  │         │                 │                       │
+│  │ OpenAlex       │──┤         │                 ▼                       │
+│  └────────────────┘  │         │  ┌───────────────────────────────────┐  │
+│  ┌────────────────┐  │         │  │ Stage 2: Extraction (Claude)      │  │
+│  │ PubMed         │──┤         │  │   - 14 entity types               │  │
+│  └────────────────┘  │         │  │   - 15 relation types             │  │
+│  ┌────────────────┐  │         │  │   - Per-chunk provenance          │  │
+│  │ Firecrawl      │──┤         │  └──────────────┬────────────────────┘  │
+│  └────────────────┘  │         │                 │                       │
+│                      │         │                 ▼                       │
+│  Output:             │         │  ┌───────────────────────────────────┐  │
+│  raw/inbox/*.md      │         │  │ Stage 3: Normalization            │  │
+│  raw/inbox/*.pdf     │         │  │   - Alias resolution              │  │
+└──────────────────────┘         │  │   - Canonical ID generation       │  │
+                                 │  └──────────────┬────────────────────┘  │
+                                 │                 │                       │
+                                 │                 ▼                       │
+                                 │  ┌───────────────────────────────────┐  │
+                                 │  │ Stage 4: Claim Collection         │  │
+                                 │  │   - EntityClaim                   │  │
+                                 │  │   - RelationClaim                 │  │
+                                 │  │   - Fact (confidence ≥0.9)        │  │
+                                 │  └──────────────┬────────────────────┘  │
+                                 └─────────────────┼───────────────────────┘
+                                                   │
+                                                   ▼
+                                 ┌─────────────────────────────────────────┐
+                                 │         ClaimCollection (JSON)          │
+                                 │         graph/exports/*.json            │
+                                 └─────────────────┬───────────────────────┘
+                                                   │
+                     ┌─────────────────────────────┼─────────────────────────┐
+                     │                             │                         │
+                     ▼                             ▼                         ▼
+        ┌─────────────────────┐      ┌─────────────────────┐      ┌─────────────────────┐
+        │  GraphMaterializer  │      │  WikiMaterializer   │      │    QueryAgent       │
+        │                     │      │                     │      │                     │
+        │  Input: Claims      │      │  Input: Claims      │      │  Input: User query  │
+        │  Output: GraphML    │      │  Output: Markdown   │      │                     │
+        │                     │      │                     │      │  Phase 1: Claims    │
+        │  - Claims → Nodes   │      │  - Claims → Pages   │      │  Phase 2: Wiki      │
+        │  - Relations → Edges│      │  - Evidence → Tables│      │  Phase 3: Graph     │
+        │  - Stubs for orphan │      │  - Preserve human   │      │  Phase 4: Evidence  │
+        │    entities         │      │    sections         │      │                     │
+        └──────────┬──────────┘      └──────────┬──────────┘      │  Output: Answer +   │
+                     │                          │                 │  Citations          │
+                     ▼                          ▼                 └──────────┬──────────┘
+        ┌─────────────────────┐      ┌─────────────────────┐                 │
+        │   graph/exports/    │      │      wiki/          │                 │
+        │   latest.graphml    │      │   *.md (entities)   │                 │
+        │   (NetworkX)        │      │   auto + human      │                 │
+        └──────────┬──────────┘      └──────────┬──────────┘                 │
+                     │                          │                            │
+                     └──────────────┬───────────┴────────────────────────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │   User receives     │
+                         │   answer with       │
+                         │   provenance        │
+                         └─────────────────────┘
+```
+
+### Agent Responsibilities
+
+| Agent | Role | Input | Output | Frequency |
+|-------|------|-------|--------|-----------|
+| **ResearchAgent** | Fetch new papers from 6 sources | Research topics (YAML) | `raw/inbox/*.md`, `*.pdf` | Scheduled (60s) |
+| **PipelineRunner** | Process documents through 4 stages | `raw/inbox/` files | `ClaimCollection` JSON | On `ingest` command |
+| **GraphMaterializer** | Build knowledge graph from claims | `ClaimCollection` | `graph/exports/latest.graphml` | On `materialize graph` |
+| **WikiMaterializer** | Generate wiki pages from claims+evidence | `ClaimCollection` + `EvidenceStore` | `wiki/*.md` | On `materialize wiki` |
+| **QueryAgent** | Answer user questions with citations | User query | Answer + `[EVIDENCE:]`, `[WIKI:]`, `[GRAPH:]` markers | On `ask` command |
+
+### Agent Communication Patterns
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    SYNCHRONOUS (CLI-triggered)                  │
+├─────────────────────────────────────────────────────────────────┤
+│  llm-rag ingest ──▶ PipelineRunner ──▶ ClaimCollection          │
+│  llm-rag ask ──▶ QueryAgent ──▶ (Claims + Wiki + Graph) ──▶ Answer │
+│  llm-rag materialize graph ──▶ GraphMaterializer ──▶ GraphML   │
+│  llm-rag materialize wiki ──▶ WikiMaterializer ──▶ Markdown    │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    ASYNCHRONOUS (Scheduled)                     │
+├─────────────────────────────────────────────────────────────────┤
+│  APScheduler (60s) ──▶ ResearchAgent ──▶ raw/inbox/            │
+│  watchdog (file events) ──▶ PipelineRunner ──▶ ClaimCollection │
+│  (Phase 5: autonomous supervisor loop)                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ### Materialization Commands
 
 | Command | Description |
