@@ -1,5 +1,11 @@
 # Battery Research OS — Roadmap
 
+**Last Updated:** April 27, 2026  
+**Current Phase:** V2 — Hardening + Full Integrations  
+**Status:** Web Dashboard ✅ COMPLETE | Query Intent ⏳ TODO | Gap Analysis ⏳ TODO
+
+---
+
 ## V1 — Current Runtime (what exists now)
 
 For full details, see [architecture/current-runtime.md](architecture/current-runtime.md).
@@ -26,7 +32,7 @@ For full details, see [architecture/current-runtime.md](architecture/current-run
 - LangGraph or any graph-based orchestration
 - Query intent classification or mode-based routing
 - Neo4j integration
-- Web dashboard
+- ~~Web dashboard~~ **✅ DONE in V2** — See Infrastructure section above
 - Structured observability
 
 ---
@@ -34,6 +40,19 @@ For full details, see [architecture/current-runtime.md](architecture/current-run
 ## V2 — Hardening + Full Integrations
 
 **Goal:** Production-ready pipeline with all source connectors live, smarter knowledge synthesis, and graph DB connectivity.
+
+**Phase 6 Progress:** 1/5 items complete (20%)
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Web Dashboard | ✅ **DONE** | FastAPI + React, D3.js graph viz, 5 pages |
+| Query Intent Classification | ⏳ TODO | Route queries by intent (wiki/vector/graph/hybrid) |
+| Supervisor Gap Analysis | ⏳ TODO | Claude reads wiki/graph to identify missing knowledge |
+| Google Scholar Subagent | ⏳ TODO | SerpAPI + Firecrawl fallback |
+| Cross-document Deduplication | ⏳ TODO | Fuzzy title + abstract matching |
+| Neo4j Integration | ⏳ TODO (V2.5) | Replace NetworkX, Cypher support |
+| Structured Observability | ⏳ TODO | Token usage, latency, error rates |
+| Contradiction Flagging | ⏳ TODO (V2.5) | ReviewerAgent → GitHub issues |
 
 ### Source Connectors
 - GoogleScholarSubagent: live SerpAPI integration with fallback to Firecrawl
@@ -55,7 +74,12 @@ For full details, see [architecture/current-runtime.md](architecture/current-run
 - Separate QueryPlanner from retrieval/synthesis for testability and extensibility
 
 ### Infrastructure
-- Web dashboard: corpus stats, graph visualization (via Neo4j Bloom or a lightweight D3 view), wiki index, processing queue status
+- ~~Web dashboard~~: **✅ DONE** — FastAPI + React dashboard with corpus stats, graph visualization (D3.js), wiki index, processing queue status
+  - 5 pages: Status, Corpus, Wiki, Graph, Query
+  - Interactive D3.js force-directed graph with draggable nodes, color-coded entity types
+  - Live API endpoints: `/api/health`, `/api/status`, `/api/corpus/*`, `/api/wiki/*`, `/api/graph/*`, `/api/query`
+  - Dark theme, responsive design, hot reload in dev mode
+  - Deployed at `http://<VPS-IP>:5173`
 - Structured logging + observability: per-agent token usage, latency, error rates
 - Automated contradiction flagging: ReviewerAgent runs on a schedule, files contradictions as GitHub issues or wiki tasks
 
