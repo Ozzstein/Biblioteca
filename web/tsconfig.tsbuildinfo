@@ -1,1 +1,1 @@
-{"root":["./src/App.tsx","./src/main.tsx","./src/lib/utils.ts","./src/pages/Corpus.tsx","./src/pages/Graph.tsx","./src/pages/Query.tsx","./src/pages/Status.tsx","./src/pages/Wiki.tsx"],"version":"5.9.3"}
+{"root":["./src/App.tsx","./src/main.tsx","./src/components/GraphVisualization.tsx","./src/lib/utils.ts","./src/pages/Corpus.tsx","./src/pages/Graph.tsx","./src/pages/Query.tsx","./src/pages/Status.tsx","./src/pages/Wiki.tsx"],"version":"5.9.3"}

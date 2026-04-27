@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Network } from 'lucide-react';
+import GraphVisualization from '../components/GraphVisualization';
 
 interface GraphStats {
   total_nodes: number;
@@ -105,6 +106,8 @@ export default function Graph() {
           </div>
         </div>
       </div>
+
+      <GraphVisualization width={800} height={500} />
 
       <div className="bg-card rounded-lg border border-border">
         <div className="p-6 border-b border-border">

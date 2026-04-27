@@ -415,6 +415,47 @@ async def list_entities(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading graph: {e}")
 
+@app.get("/api/graph/full")
+async def get_full_graph():
+    """Get full graph data for D3.js visualization."""
+    graph_file = BIBLIOTECA_HOME / "graph" / "exports" / "latest.graphml"
+    
+    if not graph_file.exists():
+        return {"nodes": [], "links": []}
+    
+    try:
+        import networkx as nx
+        G = nx.read_graphml(graph_file)
+        
+        nodes = []
+        type_to_group = {}
+        group_idx = 0
+        
+        for node, data in G.nodes(data=True):
+            node_type = data.get("type", "unknown")
+            if node_type not in type_to_group:
+                type_to_group[node_type] = group_idx
+                group_idx += 1
+            
+            nodes.append({
+                "id": node,
+                "type": node_type,
+                "name": data.get("name", node),
+                "group": type_to_group[node_type],
+            })
+        
+        links = []
+        for u, v, data in G.edges(data=True):
+            links.append({
+                "source": u,
+                "target": v,
+                "type": data.get("type", "related"),
+            })
+        
+        return {"nodes": nodes, "links": links}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading graph: {e}")
+
 @app.get("/api/graph/entities/{entity_id}")
 async def get_entity(entity_id: str):
     """Get entity details with neighbors."""
