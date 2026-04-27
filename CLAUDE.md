@@ -653,3 +653,23 @@ All module stubs (empty `__init__.py` files) are in place so imports do not fail
 7. **Overriding project root in tests**: Tests that write to a tmp directory must set `ROOT_DIR` before clearing the cache: `monkeypatch.setenv("ROOT_DIR", str(tmp_path))` then `get_settings.cache_clear()`. Always call `get_settings.cache_clear()` again in teardown (end of test).
 
 8. **`claude-code-sdk` package**: PyPI package is `claude-code-sdk` (not `anthropic-agent-sdk`). `query()` is an **async generator** — iterate with `async for message in query(...)`, never `await query(...)`. `McpStdioServerConfig` is a TypedDict, not a dataclass.
+
+---
+
+## Skill routing
+
+When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
+
+Key routing rules:
+- Product ideas/brainstorming → invoke /office-hours
+- Strategy/scope → invoke /plan-ceo-review
+- Architecture → invoke /plan-eng-review
+- Design system/plan review → invoke /design-consultation or /plan-design-review
+- Full review pipeline → invoke /autoplan
+- Bugs/errors → invoke /investigate
+- QA/testing site behavior → invoke /qa or /qa-only
+- Code review/diff check → invoke /review
+- Visual polish → invoke /design-review
+- Ship/deploy/PR → invoke /ship or /land-and-deploy
+- Save progress → invoke /context-save
+- Resume context → invoke /context-restore
