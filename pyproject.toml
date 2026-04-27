@@ -50,6 +50,7 @@ llm-rag = "llm_rag.cli:app"
 llm-rag-corpus-io = "llm_rag.mcp.corpus_io:main"
 llm-rag-wiki-io = "llm_rag.mcp.wiki_io:main"
 llm-rag-graph-io = "llm_rag.mcp.graph_io:main"
+llm-rag-literature = "llm_rag.mcp.sources.literature:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/llm_rag"]
