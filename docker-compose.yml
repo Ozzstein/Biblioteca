@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  biblioteca:
+    build: .
+    container_name: biblioteca
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ~/.biblioteca:/app/data
+    environment:
+      - BIBLIOTECA_HOME=/app/data
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+    command: ["web", "run"]
+
+# Alternative: Separate backend and frontend
+# services:
+#   backend:
+#     build: .
+#     container_name: biblioteca-backend
+#     restart: unless-stopped
+#     network_mode: host
+#     volumes:
+#       - ~/.biblioteca:/app/data
+#     environment:
+#       - BIBLIOTECA_HOME=/app/data
+#       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+#       - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+#     command: ["web", "backend"]
+#
+#   frontend:
+#     build:
+#       context: .
+#       dockerfile: Dockerfile.frontend
+#     container_name: biblioteca-frontend
+#     restart: unless-stopped
+#     ports:
+#       - "5173:5173"
+#     depends_on:
+#       - backend
