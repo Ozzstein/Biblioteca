@@ -1,0 +1,7 @@
+# Biblioteca Web API dependencies
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+pydantic>=2.8.0
+pyyaml>=6.0.0
+networkx>=3.3
