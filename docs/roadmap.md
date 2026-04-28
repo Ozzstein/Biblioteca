@@ -1,8 +1,10 @@
 # Battery Research OS — Roadmap
 
-**Last Updated:** April 27, 2026  
-**Current Phase:** V2 — Hardening + Full Integrations  
-**Status:** Web Dashboard ✅ COMPLETE | Query Intent ⏳ TODO | Gap Analysis ⏳ TODO
+**Last Updated:** April 28, 2026
+**Current Phase:** V2 — Lab Knowledge Extension Steps 1–4 SHIPPED; Step 5 in progress
+**Status:** Web Dashboard ✅ | Lab-doc ingest ✅ | Query Intent ✅ | Federated MCP gateway ✅ | Cloudflare Access auth ✅ | Writing-app reference clients ⏳ (Step 5) | Gap Analysis ⏳
+
+Latest milestone: PR #5 merged to `main` 2026-04-28 — `99ed0b8 Merge pull request #5 from Ozzstein/Ozzstein/lab-knowledge`. Federated MCP knowledge gateway with Cloudflare Access end-to-end + 735 passing tests.
 
 ---
 
@@ -41,18 +43,31 @@ For full details, see [architecture/current-runtime.md](architecture/current-run
 
 **Goal:** Production-ready pipeline with all source connectors live, smarter knowledge synthesis, and graph DB connectivity.
 
-**Phase 6 Progress:** 1/5 items complete (20%)
+**Progress:** 5/8 V2 items complete (63%); Lab Knowledge Extension Steps 1–4 of 6 done.
 
 | Item | Status | Notes |
 |------|--------|-------|
 | Web Dashboard | ✅ **DONE** | FastAPI + React, D3.js graph viz, 5 pages |
-| Query Intent Classification | ⏳ TODO | Route queries by intent (wiki/vector/graph/hybrid) |
-| Supervisor Gap Analysis | ⏳ TODO | Claude reads wiki/graph to identify missing knowledge |
+| Federated MCP Gateway | ✅ **DONE** (V2 Step 4, 2026-04-28) | `/mcp/*` over HTTP behind Cloudflare Access; per-source servers (literature, lab); restart-on-crash; filelock-guarded wiki writes; protocol v0.1 with conformance suite |
+| Lab-doc Ingest (SOPs / meetings / internal reports) | ✅ **DONE** (V2 Step 2, 2026-04-28) | `Sop`/`Meeting`/`InternalReport` schemas with status + version + ingested_at; doc_type enum + alias-map validator; per-doc-type extraction prompts; SOP versioning layout |
+| Query Intent Classification | ✅ **DONE** (V2 Step 3, 2026-04-28) | User-job intents (`reporting`/`know-how`/`insight`/`other`); confidence-threshold hybrid fallback; authority-precedence ranking |
+| Cloudflare Access Authentication | ✅ **DONE** (V2 Step 4, 2026-04-28) | CF Access JWT validation on both gateway + dashboard; service tokens for machine clients; no bearer middleware |
+| Writing-app Reference Clients | ⏳ IN PROGRESS (V2 Step 5) | Claude Desktop + Cursor + Python client + expanded `docs/api/v1.md`. See `docs/handoff-step5.md`. |
+| Documentation refresh | ⏳ TODO (V2 Step 6) | CLAUDE.md MCP-Gateway section, schema-types table updates, doc_type enum, per-source auto-section convention |
+| Supervisor Gap Analysis | ⏳ TODO (V3) | Claude reads wiki/graph to identify missing knowledge |
 | Google Scholar Subagent | ⏳ TODO | SerpAPI + Firecrawl fallback |
 | Cross-document Deduplication | ⏳ TODO | Fuzzy title + abstract matching |
-| Neo4j Integration | ⏳ TODO (V2.5) | Replace NetworkX, Cypher support |
+| Neo4j Integration | ⏳ TODO (V2.5) | Replace NetworkX, Cypher support. Threshold-gated: migrate when entity count > ~50k OR sister project federated graph queries become regular workload |
 | Structured Observability | ⏳ TODO | Token usage, latency, error rates |
 | Contradiction Flagging | ⏳ TODO (V2.5) | ReviewerAgent → GitHub issues |
+| Federation v0.2 | ⏳ TODO (~1–2 months) | Sister experimental-data project will plug in via the v0.1 protocol; v0.2 finalizes any contract gaps surfaced during integration |
+
+### Step 4 follow-ups (non-blocking, tracked in `docs/review-step4.md`)
+
+- **F1**: `docs/api/v1.md` is thin (~100 lines) — expand in Step 5 before sister-project integration
+- **F2**: dashboard CORS still hardcodes localhost (one-line fix)
+- **F3**: dashboard `/api/query` still uses old `QueryAgent`, not `QueryPlanner`
+- **F4**: gateway hardcodes relative `config/mcp-sources.yaml` path (use `PROJECT_ROOT`)
 
 ### Source Connectors
 - GoogleScholarSubagent: live SerpAPI integration with fallback to Firecrawl
@@ -70,8 +85,8 @@ For full details, see [architecture/current-runtime.md](architecture/current-run
 - Graph-driven recommendations: "you have 5 papers on LFP degradation but no wiki page — create one?"
 
 ### Query
-- Query intent classification: route queries to wiki-first, vector-first, graph-first, or hybrid retrieval based on intent (mechanistic, evidence, relational, synthesis)
-- Separate QueryPlanner from retrieval/synthesis for testability and extensibility
+- ~~Query intent classification: route queries to wiki-first, vector-first, graph-first, or hybrid retrieval based on intent~~ **✅ DONE in V2 Step 3** — user-job intents (`reporting`/`know-how`/`insight`/`other`) classified by Haiku; confidence-threshold hybrid fallback (A5A); authority-precedence ranking (CX-7) reads `status` field on entities
+- ~~Separate QueryPlanner from retrieval/synthesis for testability and extensibility~~ **✅ DONE** — `src/llm_rag/query/planner.py`
 
 ### Infrastructure
 - ~~Web dashboard~~: **✅ DONE** — FastAPI + React dashboard with corpus stats, graph visualization (D3.js), wiki index, processing queue status
