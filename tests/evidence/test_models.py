@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -15,7 +15,6 @@ from llm_rag.evidence.models import (
     EvidenceStore,
     ProvenanceSpan,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -33,7 +32,7 @@ def _make_document(**overrides) -> EvidenceDocument:
         "source_path": "raw/papers/sample-lfp-001.md",
         "doc_type": DocumentType.PAPER,
         "content_hash": "sha256:abc123",
-        "ingested_at": datetime(2026, 4, 18, 10, 0, 0, tzinfo=timezone.utc),
+        "ingested_at": datetime(2026, 4, 18, 10, 0, 0, tzinfo=UTC),
     }
     defaults.update(overrides)
     return EvidenceDocument(**defaults)

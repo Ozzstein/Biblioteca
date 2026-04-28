@@ -6,8 +6,6 @@ import json
 import logging
 from pathlib import Path
 
-import pytest
-
 from llm_rag.utils.logging_config import (
     ColorConsoleFormatter,
     StructuredFormatter,

@@ -6,7 +6,7 @@ preserving human-editable sections from existing pages.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from llm_rag.evidence.models import EvidenceStore
@@ -17,7 +17,6 @@ from llm_rag.knowledge.models import (
     EntityClaim,
     RelationClaim,
 )
-from llm_rag.wiki.reader import parse_page
 from llm_rag.wiki.writer import create_page, update_auto_sections
 
 
@@ -61,7 +60,7 @@ class WikiMaterializer:
                     "entity_id": entity_id,
                     "entity_type": entity_type,
                     "canonical_name": canonical_name,
-                    "created": datetime.now(tz=timezone.utc).strftime("%Y-%m-%d"),
+                    "created": datetime.now(tz=UTC).strftime("%Y-%m-%d"),
                 },
             )
 
@@ -117,7 +116,7 @@ class WikiMaterializer:
         sections["provenance"] = self._render_provenance(claims, evidence)
 
         # Last Updated
-        sections["last-updated"] = datetime.now(tz=timezone.utc).strftime(
+        sections["last-updated"] = datetime.now(tz=UTC).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
         )
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -28,7 +28,7 @@ from llm_rag.pipeline.runner import (
 from llm_rag.schemas.entities import EntityType, RelationType
 from llm_rag.schemas.provenance import ProcessingStage
 
-NOW = datetime(2026, 4, 24, 12, 0, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 4, 24, 12, 0, 0, tzinfo=UTC)
 
 
 # --- SourceDocument ---

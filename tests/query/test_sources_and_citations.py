@@ -14,7 +14,6 @@ from llm_rag.query.agent import (
     GraphExpansion,
     QueryAgent,
     QueryContextBundle,
-    QueryResult,
     WikiHit,
     _build_context_bundle,
     _build_synthesis_prompt,
@@ -27,7 +26,6 @@ from llm_rag.query.agent import (
     retrieve_graph,
     retrieve_wiki,
 )
-
 
 # ---------------------------------------------------------------------------
 # Citation model

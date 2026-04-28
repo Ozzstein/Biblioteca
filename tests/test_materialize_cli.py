@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -47,7 +46,7 @@ def _make_entity_claim(
         source_doc_id=doc_id,
         evidence_chunk_ids=[f"{doc_id}:chunk-001"],
         status=ClaimStatus.CANDIDATE,
-        extracted_at=datetime(2026, 4, 18, tzinfo=timezone.utc),
+        extracted_at=datetime(2026, 4, 18, tzinfo=UTC),
         entity_id=entity_id,
         entity_type=entity_type,
         property_name=prop_name,
@@ -68,7 +67,7 @@ def _make_relation_claim(
         source_doc_id=doc_id,
         evidence_chunk_ids=[f"{doc_id}:chunk-002"],
         status=ClaimStatus.CANDIDATE,
-        extracted_at=datetime(2026, 4, 18, tzinfo=timezone.utc),
+        extracted_at=datetime(2026, 4, 18, tzinfo=UTC),
         source_entity_id=source,
         target_entity_id=target,
         relation_type=rel_type,
@@ -80,7 +79,7 @@ def _make_collection(doc_id: str = "papers/lfp-001") -> ClaimCollection:
         source_doc_id=doc_id,
         entity_claims=[_make_entity_claim(doc_id=doc_id)],
         relation_claims=[_make_relation_claim(doc_id=doc_id)],
-        extracted_at=datetime(2026, 4, 18, tzinfo=timezone.utc),
+        extracted_at=datetime(2026, 4, 18, tzinfo=UTC),
     )
 
 
@@ -92,7 +91,7 @@ def _make_evidence_store(doc_id: str = "papers/lfp-001") -> EvidenceStore:
             doc_type=DocumentType.PAPER,
             content_hash="sha256:abc123",
             title="LFP Capacity Fade",
-            ingested_at=datetime(2026, 4, 18, tzinfo=timezone.utc),
+            ingested_at=datetime(2026, 4, 18, tzinfo=UTC),
         ),
         chunks=[
             EvidenceChunk(
@@ -502,7 +501,7 @@ def test_multiple_collections_merged(tmp_path):
             )
         ],
         relation_claims=[],
-        extracted_at=datetime(2026, 4, 18, tzinfo=timezone.utc),
+        extracted_at=datetime(2026, 4, 18, tzinfo=UTC),
     )
     (input_dir / "nmc-002-claims.json").write_text(coll2.model_dump_json(indent=2))
 

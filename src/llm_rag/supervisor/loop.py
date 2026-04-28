@@ -5,7 +5,7 @@ import json
 import logging
 import queue
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,8 +18,6 @@ from llm_rag.config import Settings, get_settings
 from llm_rag.mcp.pool import MCPPool
 from llm_rag.pipeline.runner import PipelineRunner
 from llm_rag.research.coordinator import ResearchAgent, SourceSubagent
-from llm_rag.supervisor.shutdown import ShutdownManager, ShutdownReason
-from llm_rag.supervisor.state import SubagentHealth, SupervisorState, clear_pid, now_iso, save_state
 from llm_rag.research.subagents.arxiv import ArXivSubagent
 from llm_rag.research.subagents.firecrawl import FirecrawlSubagent
 from llm_rag.research.subagents.google_scholar import GoogleScholarSubagent
@@ -27,6 +25,8 @@ from llm_rag.research.subagents.openalex import OpenAlexSubagent
 from llm_rag.research.subagents.pubmed import PubMedSubagent
 from llm_rag.research.subagents.semantic_scholar import SemanticScholarSubagent
 from llm_rag.research.subagents.unpaywall import UnpaywallSubagent
+from llm_rag.supervisor.shutdown import ShutdownManager, ShutdownReason
+from llm_rag.supervisor.state import SubagentHealth, SupervisorState, clear_pid, now_iso, save_state
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +90,7 @@ def _run_subagent_sync(
     """Bridge: run async ResearchAgent.run() for a single subagent from a sync APScheduler job."""
     result = SubagentResult(
         source_name=source_name,
-        started_at=datetime.now(timezone.utc).isoformat(),
+        started_at=datetime.now(UTC).isoformat(),
     )
     logger.info(
         "Subagent %s started", source_name,
@@ -110,7 +110,7 @@ def _run_subagent_sync(
         )
         result.error = str(exc)
     finally:
-        result.finished_at = datetime.now(timezone.utc).isoformat()
+        result.finished_at = datetime.now(UTC).isoformat()
         scheduler_state.record(result)
         # Update per-subagent health tracking
         if supervisor_state is not None:
@@ -298,7 +298,7 @@ class SupervisorAgent:
         evt = self._shutdown_manager.get_async_event()
         try:
             await asyncio.wait_for(evt.wait(), timeout=seconds)
-        except (TimeoutError, asyncio.TimeoutError):
+        except TimeoutError:
             pass  # normal expiration
 
     async def run(self, max_iterations: int | None = None) -> None:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from llm_rag.supervisor.state import (
@@ -12,7 +12,6 @@ from llm_rag.supervisor.state import (
     load_state,
     save_state,
 )
-
 
 # --- HealthStatus enum ---
 
@@ -126,27 +125,27 @@ def test_heartbeat_age_no_heartbeat():
 
 
 def test_heartbeat_age_recent():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     state = SupervisorState(last_heartbeat=now.isoformat())
     age = state.heartbeat_age()
     assert age < 2.0  # should be nearly 0
 
 
 def test_heartbeat_age_old():
-    old = datetime.now(timezone.utc) - timedelta(seconds=120)
+    old = datetime.now(UTC) - timedelta(seconds=120)
     state = SupervisorState(last_heartbeat=old.isoformat())
     age = state.heartbeat_age()
     assert 119 < age < 125
 
 
 def test_is_healthy_within_threshold():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     state = SupervisorState(last_heartbeat=now.isoformat())
     assert state.is_healthy(threshold_seconds=60.0) is True
 
 
 def test_is_healthy_outside_threshold():
-    old = datetime.now(timezone.utc) - timedelta(seconds=120)
+    old = datetime.now(UTC) - timedelta(seconds=120)
     state = SupervisorState(last_heartbeat=old.isoformat())
     assert state.is_healthy(threshold_seconds=60.0) is False
 
@@ -173,7 +172,7 @@ def test_error_rate_calculation():
 
 
 def test_health_status_healthy():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     state = SupervisorState(
         last_heartbeat=now.isoformat(),
         files_processed=100,
@@ -183,7 +182,7 @@ def test_health_status_healthy():
 
 
 def test_health_status_degraded_by_heartbeat():
-    old = datetime.now(timezone.utc) - timedelta(seconds=120)
+    old = datetime.now(UTC) - timedelta(seconds=120)
     state = SupervisorState(
         last_heartbeat=old.isoformat(),
         files_processed=100,
@@ -193,7 +192,7 @@ def test_health_status_degraded_by_heartbeat():
 
 
 def test_health_status_unhealthy_by_heartbeat():
-    old = datetime.now(timezone.utc) - timedelta(seconds=400)
+    old = datetime.now(UTC) - timedelta(seconds=400)
     state = SupervisorState(
         last_heartbeat=old.isoformat(),
         files_processed=100,
@@ -203,7 +202,7 @@ def test_health_status_unhealthy_by_heartbeat():
 
 
 def test_health_status_degraded_by_error_rate():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     state = SupervisorState(
         last_heartbeat=now.isoformat(),
         files_processed=7,
@@ -213,7 +212,7 @@ def test_health_status_degraded_by_error_rate():
 
 
 def test_health_status_unhealthy_by_error_rate():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     state = SupervisorState(
         last_heartbeat=now.isoformat(),
         files_processed=3,
@@ -223,7 +222,7 @@ def test_health_status_unhealthy_by_error_rate():
 
 
 def test_health_status_degraded_by_subagent():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     sh = SubagentHealth(name="arxiv")
     for i in range(4):
         sh.record_failure(f"2026-04-24T10:0{i}:00+00:00")
@@ -237,7 +236,7 @@ def test_health_status_degraded_by_subagent():
 
 
 def test_health_status_unhealthy_by_subagent():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     sh = SubagentHealth(name="arxiv")
     for i in range(6):
         sh.record_failure(f"2026-04-24T10:0{i}:00+00:00")

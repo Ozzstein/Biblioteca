@@ -6,14 +6,10 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from llm_rag.research.coordinator import ResearchAgent
-from llm_rag.research.subagents.arxiv import ArXivSubagent
-from llm_rag.research.subagents.pubmed import PubMedSubagent
-from llm_rag.research.subagents.semantic_scholar import SemanticScholarSubagent
 from llm_rag.supervisor.loop import (
     SchedulerState,
     SubagentResult,
     SupervisorAgent,
-    _parse_schedule,
     _run_subagent_sync,
     build_research_agent,
     load_sources_config,
