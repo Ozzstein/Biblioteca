@@ -632,6 +632,13 @@ All module stubs (empty `__init__.py` files) are in place so imports do not fail
 | Plan 1 implementation | `docs/superpowers/plans/2026-04-19-plan-1-foundation.md` | Task-by-task TDD plan for foundation layer |
 | v2 / v3 Roadmap | `docs/roadmap.md` | v2: hardening + full integrations; v3: goal-directed autonomous research |
 
+## MCP Gateway
+
+The Cloudflare-protected MCP-over-HTTP gateway is documented in
+`docs/api/v1.md`. Reference writing-app integrations live in
+`examples/writing-app/` and cover Claude Desktop, Cursor, and a small Python
+client.
+
 **If you are starting a new Claude Code session:** Read the design spec first (30 min), then this CLAUDE.md, then look at `src/llm_rag/schemas/` to understand the data models. The schemas are the source of truth for all data structures in the system.
 
 ---

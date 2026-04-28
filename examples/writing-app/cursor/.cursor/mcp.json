@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "battery-research-os": {
+      "url": "https://<your-gateway-hostname>/mcp",
+      "headers": {
+        "CF-Access-Client-Id": "${CF_ACCESS_CLIENT_ID}",
+        "CF-Access-Client-Secret": "${CF_ACCESS_CLIENT_SECRET}"
+      }
+    }
+  }
+}
