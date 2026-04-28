@@ -4,6 +4,22 @@ Battery Research OS is a local-first, autonomous research assistant for battery 
 
 ---
 
+## This workspace's role (CTO mode)
+
+**This Conductor workspace is CTO mode. Do NOT write feature code here.**
+
+- Implementation happens in **other Conductor workspaces** (one per concurrent step / feature). This workspace plans, decides, reviews, and produces handoff briefs.
+- The branch `Ozzstein/cto-planning` is the parking branch for any speculative diffs, design notes, or planning artifacts produced here. Feature branches (e.g., `Ozzstein/lab-knowledge`) are owned by the implementing workspace.
+- Default outputs from this workspace:
+  - Design docs → `~/.gstack/projects/Ozzstein-Biblioteca/`
+  - Implementation plans → `docs/superpowers/plans/`
+  - Handoff briefs → `docs/handoff-*.md`
+  - Adversarial reviews → run `/plan-eng-review` or `/review` against PR diffs from other workspaces
+- When a feature workspace PRs back, this workspace runs the review skill, reads the diff, signs off (or requests changes) — never edits the implementation directly.
+- Allowed file edits in this workspace: design docs, plans, handoff notes, this CLAUDE.md, the gstack skill-routing block. Any code edit is a smell — stop and confirm before doing it.
+
+---
+
 ## gstack
 
 Use the `/browse` skill from gstack for all web browsing. Never use `mcp__claude-in-chrome__*` tools.
