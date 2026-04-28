@@ -1,10 +1,10 @@
 # Battery Research OS — Roadmap
 
-**Last Updated:** April 28, 2026
-**Current Phase:** V2 — Lab Knowledge Extension Steps 1–4 SHIPPED; Step 5 in progress
-**Status:** Web Dashboard ✅ | Lab-doc ingest ✅ | Query Intent ✅ | Federated MCP gateway ✅ | Cloudflare Access auth ✅ | Writing-app reference clients ⏳ (Step 5) | Gap Analysis ⏳
+**Last Updated:** April 28, 2026 (PM)
+**Current Phase:** V2 — Lab Knowledge Extension Steps 1–5 SHIPPED; Step 6 (docs polish) remains
+**Status:** Web Dashboard ✅ | Lab-doc ingest ✅ | Query Intent ✅ | Federated MCP gateway ✅ | Cloudflare Access auth ✅ | Writing-app reference clients ✅ | MCP-over-HTTP protocol bridge ✅ | v1 API spec ✅ | Documentation refresh ⏳ (Step 6) | Gap Analysis ⏳ (V3)
 
-Latest milestone: PR #5 merged to `main` 2026-04-28 — `99ed0b8 Merge pull request #5 from Ozzstein/Ozzstein/lab-knowledge`. Federated MCP knowledge gateway with Cloudflare Access end-to-end + 735 passing tests.
+Latest milestone: PR #6 merged to `main` 2026-04-28 — `22a298f Merge pull request #6 from Ozzstein/Ozzstein/lab-knowledge-step5`. MCP-over-HTTP protocol bridge (FastMCP `streamable_http_app` mounted with Cloudflare Access ASGI middleware), three reference clients (Claude Desktop, Cursor, custom Python), expanded `docs/api/v1.md` (327 lines, semver + error model + citation payload + idempotency + streaming + timeouts), and all four Step 4 follow-ups closed. **740 passing tests.** Step 5 review verdict: `docs/review-step5.md`.
 
 ---
 
@@ -43,7 +43,7 @@ For full details, see [architecture/current-runtime.md](architecture/current-run
 
 **Goal:** Production-ready pipeline with all source connectors live, smarter knowledge synthesis, and graph DB connectivity.
 
-**Progress:** 5/8 V2 items complete (63%); Lab Knowledge Extension Steps 1–4 of 6 done.
+**Progress:** 7/8 V2 items complete (88%); Lab Knowledge Extension Steps 1–5 of 6 done. **Only V2 Step 6 (documentation refresh) remains in this milestone.**
 
 | Item | Status | Notes |
 |------|--------|-------|
@@ -52,8 +52,10 @@ For full details, see [architecture/current-runtime.md](architecture/current-run
 | Lab-doc Ingest (SOPs / meetings / internal reports) | ✅ **DONE** (V2 Step 2, 2026-04-28) | `Sop`/`Meeting`/`InternalReport` schemas with status + version + ingested_at; doc_type enum + alias-map validator; per-doc-type extraction prompts; SOP versioning layout |
 | Query Intent Classification | ✅ **DONE** (V2 Step 3, 2026-04-28) | User-job intents (`reporting`/`know-how`/`insight`/`other`); confidence-threshold hybrid fallback; authority-precedence ranking |
 | Cloudflare Access Authentication | ✅ **DONE** (V2 Step 4, 2026-04-28) | CF Access JWT validation on both gateway + dashboard; service tokens for machine clients; no bearer middleware |
-| Writing-app Reference Clients | ⏳ IN PROGRESS (V2 Step 5) | Claude Desktop + Cursor + Python client + expanded `docs/api/v1.md`. See `docs/handoff-step5.md`. |
-| Documentation refresh | ⏳ TODO (V2 Step 6) | CLAUDE.md MCP-Gateway section, schema-types table updates, doc_type enum, per-source auto-section convention |
+| Writing-app Reference Clients | ✅ **DONE** (V2 Step 5, 2026-04-28 PM) | Claude Desktop, Cursor, custom Python with smoke test. `examples/writing-app/`. |
+| MCP-over-HTTP Protocol Bridge | ✅ **DONE** (V2 Step 5 bonus, 2026-04-28 PM) | `POST /mcp` exposes a `query` tool over MCP streamable HTTP via FastMCP, mounted as a starlette route wrapped in custom `CloudflareAccessASGI` middleware. Unlocks real Claude Desktop / Cursor connectivity. |
+| v1 API spec | ✅ **DONE** (V2 Step 5, 2026-04-28 PM) | `docs/api/v1.md`: 327 lines covering semver versioning, full error model with status+code table, citation payload format, per-endpoint idempotency, streaming behavior, timeout semantics, explicit out-of-scope list. Sister-project integration contract. |
+| Documentation refresh | ⏳ TODO (V2 Step 6) | CLAUDE.md MCP-Gateway section, schema-types table updates, doc_type enum, per-source auto-section convention. C2/C3 from `docs/review-step5.md` may fold here. |
 | Supervisor Gap Analysis | ⏳ TODO (V3) | Claude reads wiki/graph to identify missing knowledge |
 | Google Scholar Subagent | ⏳ TODO | SerpAPI + Firecrawl fallback |
 | Cross-document Deduplication | ⏳ TODO | Fuzzy title + abstract matching |
@@ -62,12 +64,18 @@ For full details, see [architecture/current-runtime.md](architecture/current-run
 | Contradiction Flagging | ⏳ TODO (V2.5) | ReviewerAgent → GitHub issues |
 | Federation v0.2 | ⏳ TODO (~1–2 months) | Sister experimental-data project will plug in via the v0.1 protocol; v0.2 finalizes any contract gaps surfaced during integration |
 
-### Step 4 follow-ups (non-blocking, tracked in `docs/review-step4.md`)
+### Step 4 follow-ups — ALL CLOSED in Step 5
 
-- **F1**: `docs/api/v1.md` is thin (~100 lines) — expand in Step 5 before sister-project integration
-- **F2**: dashboard CORS still hardcodes localhost (one-line fix)
-- **F3**: dashboard `/api/query` still uses old `QueryAgent`, not `QueryPlanner`
-- **F4**: gateway hardcodes relative `config/mcp-sources.yaml` path (use `PROJECT_ROOT`)
+- **F1** ✅ — `docs/api/v1.md` expanded 99 → 327 lines.
+- **F2** ✅ — dashboard CORS now reads `Settings.gateway_cors_origins`.
+- **F3** ✅ — dashboard `/api/query` switched to `QueryPlanner` + `MCPPool.from_yaml`.
+- **F4** ✅ — gateway uses `PROJECT_ROOT / "config" / "mcp-sources.yaml"`.
+
+### Step 5 follow-ups (non-blocking, tracked in `docs/review-step5.md`)
+
+- **C1** — citation `source` field is currently derived by `doc_id` string-prefix matching (sop/, meeting/, report/ → "lab"). Fragile. Should propagate the actual source-server name through the planner. v1.1 follow-up.
+- **C2** — Claude Desktop config uses `enterpriseConfig.managedMcpServers` (MDM-managed format). Verify the deployment model used by the org; may need to ship both shapes (MDM + per-user `mcpServers`).
+- **C3** — dashboard `/api/query` opens a fresh `MCPPool` per request (~seconds of cold-start latency). Should be lifespan-managed like the gateway. Fold into V2 Step 6.
 
 ### Source Connectors
 - GoogleScholarSubagent: live SerpAPI integration with fallback to Firecrawl
