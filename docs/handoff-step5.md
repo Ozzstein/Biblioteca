@@ -74,6 +74,8 @@ This is the "smoke test" the user runs to confirm Step 4 works end-to-end. Keep 
 
 ### 5.4 v1 API spec — `docs/api/v1.md` (CX-9)
 
+**Update 2026-04-28:** Step 4 agent shipped a thin v1 API spec already (~100 lines, covers auth + 5 routes + basic shapes). **Don't redo it from scratch — extend it.** See `docs/review-step4.md` §F1 for the specific gaps that block sister-project integration.
+
 The stable agent-facing contract. Cover:
 
 - **Authentication** — Cloudflare Access service tokens for machines, user identity for humans. Header names, JWT validation expectations, error codes (401 from edge, 403 from app).
