@@ -2,20 +2,21 @@
 Biblioteca Web API — FastAPI backend for the Battery Research OS dashboard.
 """
 
-import os
-import sys
 import json
-from pathlib import Path
+import os
 from datetime import datetime
-from typing import Optional
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from llm_rag.auth.cloudflare import require_cloudflare_access
+from llm_rag.config import PROJECT_ROOT, get_settings
+from llm_rag.mcp.pool import MCPPool
+from llm_rag.query.planner import QueryPlanner
 
 # ============================================================================
 # Configuration
@@ -35,10 +36,18 @@ app = FastAPI(
     dependencies=[Depends(require_cloudflare_access)],
 )
 
-# CORS for dev server
+def _dashboard_cors_origins() -> list[str]:
+    return get_settings().gateway_cors_origins or [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+    ]
+
+
+# CORS for dev server and Cloudflare-hosted dashboard origins.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
+    allow_origins=_dashboard_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,9 +60,9 @@ app.add_middleware(
 class SystemStatus(BaseModel):
     status: str
     supervisor_running: bool
-    supervisor_pid: Optional[int] = None
+    supervisor_pid: int | None = None
     health: str = "healthy"
-    last_heartbeat: Optional[str] = None
+    last_heartbeat: str | None = None
     files_processed: int = 0
     error_rate: float = 0.0
     pending_files: int = 0
@@ -113,7 +122,6 @@ async def get_status():
     if pid_file.exists():
         try:
             pid = int(pid_file.read_text().strip())
-            import signal
             os.kill(pid, 0)
             supervisor_running = True
             supervisor_pid = pid
@@ -127,7 +135,7 @@ async def get_status():
             last_heartbeat = state.get("last_heartbeat")
             files_processed = state.get("files_processed", 0)
             error_rate = state.get("error_rate", 0.0)
-        except (json.JSONDecodeError, IOError):
+        except (json.JSONDecodeError, OSError):
             pass
     
     # Count pending files
@@ -179,7 +187,7 @@ async def get_corpus_stats():
                     "chunks": chunks,
                     "processed_at": manifest.get("processed_at"),
                 })
-            except (json.JSONDecodeError, IOError):
+            except (json.JSONDecodeError, OSError):
                 pass
     
     recent_docs.sort(key=lambda x: x.get("processed_at") or "", reverse=True)
@@ -199,7 +207,7 @@ async def get_corpus_stats():
 @app.get("/api/corpus/documents")
 async def list_documents(
     limit: int = Query(50, ge=1, le=200),
-    status: Optional[str] = None,
+    status: str | None = None,
 ):
     """List all documents in the corpus."""
     manifests_dir = BIBLIOTECA_HOME / "retrieval" / "manifests"
@@ -220,7 +228,7 @@ async def list_documents(
                     "num_chunks": manifest.get("chunks", 0),
                     "processed_at": manifest.get("processed_at"),
                 })
-            except (json.JSONDecodeError, IOError):
+            except (json.JSONDecodeError, OSError):
                 pass
     
     documents.sort(key=lambda x: x.get("processed_at") or "", reverse=True)
@@ -237,7 +245,7 @@ async def get_document(doc_id: str):
     try:
         manifest = json.loads(manifest_file.read_text())
         return manifest
-    except (json.JSONDecodeError, IOError) as e:
+    except (json.JSONDecodeError, OSError) as e:
         raise HTTPException(status_code=500, detail=f"Error reading manifest: {e}")
 
 # ============================================================================
@@ -281,7 +289,7 @@ async def get_wiki_stats():
 
 @app.get("/api/wiki/pages")
 async def list_wiki_pages(
-    category: Optional[str] = None,
+    category: str | None = None,
     limit: int = Query(100, ge=1, le=500),
 ):
     """List wiki pages, optionally filtered by category."""
@@ -337,7 +345,7 @@ async def get_wiki_page(path: str):
                 import yaml
                 frontmatter = yaml.safe_load(match.group(1)) or {}
                 body = content[match.end():]
-            except:
+            except Exception:
                 pass
     
     return {
@@ -389,7 +397,7 @@ async def get_graph_stats():
 
 @app.get("/api/graph/entities")
 async def list_entities(
-    entity_type: Optional[str] = None,
+    entity_type: str | None = None,
     limit: int = Query(100, ge=1, le=500),
 ):
     """List entities in the graph."""
@@ -510,28 +518,34 @@ async def query_knowledge(request: QueryRequest):
     start_time = time.time()
     
     try:
-        # Try to import and use the query agent
-        sys.path.insert(0, str(BIBLIOTECA_HOME / "src"))
-        from llm_rag.query.agent import QueryAgent
-        
-        agent = QueryAgent()
-        result = agent.ask(
-            query=request.query,
-            mode=request.mode,
-            quality=request.quality,
-            verbose=request.verbose,
-        )
+        planner = QueryPlanner(get_settings())
+        registry_path = PROJECT_ROOT / "config" / "mcp-sources.yaml"
+        async with MCPPool.from_yaml(registry_path) as pool:
+            result = await planner.ask(
+                request.query,
+                pool,
+                mode=request.mode,
+                quality=request.quality,
+            )
         
         latency_ms = (time.time() - start_time) * 1000
+        plan = planner.last_plan
         
         return QueryResponse(
-            answer=result.get("answer", ""),
-            citations=result.get("citations", []),
-            context=result.get("context", {}),
+            answer=result.answer,
+            citations=[
+                citation.model_dump(mode="json")
+                for citation in result.context_bundle.citations
+            ],
+            context={
+                "intent": plan.intent.value if plan is not None else "other",
+                "confidence": plan.confidence if plan is not None else 0.0,
+                "route": plan.mode.value if plan is not None else request.mode,
+                "sources": result.sources,
+                "verbose": request.verbose,
+            },
             latency_ms=latency_ms,
         )
-    except ImportError as e:
-        raise HTTPException(status_code=500, detail=f"Query module not available: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query failed: {e}")
 

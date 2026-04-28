@@ -61,4 +61,7 @@ def test_query_returns_provenance_and_sources() -> None:
     assert payload["route"] == "hybrid"
     assert payload["sources_consulted"] == ["literature", "lab"]
     assert payload["sources_unavailable"] == []
-    assert payload["citations"][0]["source_doc_id"] == "papers/lfp-001"
+    assert payload["citations"][0]["source"] == "literature"
+    assert payload["citations"][0]["doc_id"] == "papers/lfp-001"
+    assert payload["citations"][0]["chunk_index"] == 0
+    assert payload["citations"][0]["verify_against_source"] is True
