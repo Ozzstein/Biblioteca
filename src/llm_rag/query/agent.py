@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from dataclasses import dataclass, field
@@ -358,24 +359,62 @@ class QueryAgent:
             max_tokens=4096,
         )
 
-    async def ask(self, query: str, pool: MCPPool) -> QueryResult:
-        # Phase 1–3: Explicit retrieval from each layer
-        evidence = await retrieve_evidence(query)
-        wiki = await retrieve_wiki(query)
-        graph = await retrieve_graph(query)
+    async def _retrieve(self, query: str, mode: str = "hybrid") -> QueryContextBundle:
+        """Collect retrieval context for one explicit route."""
+        mode = mode.lower()
+        evidence: list[EvidenceHit] = []
+        wiki: list[WikiHit] = []
+        graph: list[GraphExpansion] = []
+
+        if mode == "vector":
+            evidence = await retrieve_evidence(query)
+        elif mode == "wiki":
+            wiki = await retrieve_wiki(query)
+        elif mode == "graph":
+            graph = await retrieve_graph(query)
+        elif mode == "hybrid":
+            evidence, wiki, graph = await asyncio.gather(
+                retrieve_evidence(query),
+                retrieve_wiki(query),
+                retrieve_graph(query),
+            )
+        else:
+            raise ValueError(f"Unsupported query retrieval mode: {mode}")
 
         bundle = QueryContextBundle(
             evidence_hits=evidence,
             wiki_hits=wiki,
             graph_expansions=graph,
         )
+        return bundle
+
+    async def ask_routed(
+        self,
+        query: str,
+        pool: MCPPool,
+        *,
+        mode: str = "hybrid",
+        synthesis_model: str | None = None,
+    ) -> QueryResult:
+        bundle = await self._retrieve(query, mode)
 
         # Phase 4: Synthesis — pass collected context to the agent
         context = _format_context(bundle)
         synthesis_prompt = _build_synthesis_prompt(context, query)
-        raw = await run_agent(self._agent, synthesis_prompt, self.settings, pool)
+        agent = self._agent
+        if synthesis_model is not None:
+            agent = AgentDefinition(
+                name=self._agent.name,
+                model=synthesis_model,
+                mcp_servers=list(self._agent.mcp_servers),
+                max_tokens=self._agent.max_tokens,
+            )
+        raw = await run_agent(agent, synthesis_prompt, self.settings, pool)
         result = _parse_result(raw)
         # Merge actual retrieval results with parsed citations
         bundle.citations = result.context_bundle.citations
         result.context_bundle = bundle
         return result
+
+    async def ask(self, query: str, pool: MCPPool) -> QueryResult:
+        return await self.ask_routed(query, pool, mode="hybrid")
