@@ -112,6 +112,17 @@ def status() -> None:
 
 
 @app.command()
+def serve(
+    host: str = typer.Option("127.0.0.1", help="Host interface to bind"),
+    port: int = typer.Option(8443, help="Port to bind"),
+) -> None:
+    """Run the MCP-over-HTTP gateway."""
+    import uvicorn
+
+    uvicorn.run("llm_rag.mcp.gateway:app", host=host, port=port)
+
+
+@app.command()
 def ingest(
     path: str | None = typer.Option(None, help="Path to ingest (e.g. raw/inbox/)"),
     doc_id: str | None = typer.Option(None, "--doc-id", help="Process one specific document by ID"),

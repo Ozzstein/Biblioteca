@@ -9,11 +9,13 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+
+from llm_rag.auth.cloudflare import require_cloudflare_access
 
 # ============================================================================
 # Configuration
@@ -30,6 +32,7 @@ app = FastAPI(
     title="Biblioteca API",
     description="Battery Research OS Dashboard API",
     version="0.1.0",
+    dependencies=[Depends(require_cloudflare_access)],
 )
 
 # CORS for dev server
