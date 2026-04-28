@@ -564,6 +564,13 @@ See full roadmap: [`docs/roadmap.md`](docs/roadmap.md)
 
 ---
 
+## External Integrations
+
+- **Writing-app examples:** [`examples/writing-app/`](examples/writing-app/) — Claude Desktop, Cursor, and Python reference clients for the Cloudflare-protected MCP gateway.
+- **Gateway API contract:** [`docs/api/v1.md`](docs/api/v1.md) — stable v1.0.0 route, auth, citation, error, idempotency, and versioning contract for external clients.
+
+---
+
 ## Developer Docs
 
 - **Developer guide (start here):** [`CLAUDE.md`](CLAUDE.md) — complete reference for working with this codebase; covers all conventions, schemas, agent designs, and how-to guides
