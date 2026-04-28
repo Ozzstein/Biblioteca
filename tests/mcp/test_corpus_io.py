@@ -189,7 +189,7 @@ async def test_ingest_file_md(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     result = await ingest_file(
         source_path=str(source),
         doc_id="papers/test-paper",
-        doc_type="papers",
+        doc_type="paper",
         source_connector="manual",
     )
     assert result["doc_id"] == "papers/test-paper"
@@ -290,7 +290,8 @@ async def test_scan_pending_files_skips_fully_processed(
     raw.mkdir(parents=True)
     doc = raw / "done.md"
     doc.write_text("content")
-    from llm_rag.pipeline.manifest import create_manifest, save_manifest as _save, update_stage
+    from llm_rag.pipeline.manifest import create_manifest, update_stage
+    from llm_rag.pipeline.manifest import save_manifest as _save
     from llm_rag.schemas.provenance import ProcessingStage
     manifest = create_manifest(doc, "papers/done", "papers", "manual")
     for stage in ProcessingStage:

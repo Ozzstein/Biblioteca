@@ -41,3 +41,22 @@ sources:
       - "intent:know-how"
       - "intent:insight"
       - "tag:paper"
+  - name: lab
+    backend: stdio
+    command: ["python", "-m", "llm_rag.mcp.sources.lab"]
+    capabilities:
+      - "tool:get_chunks"
+      - "tool:search_chunks"
+      - "tool:get_manifest"
+      - "tool:read_page"
+      - "tool:list_pages"
+      - "tool:get_template"
+      - "tool:get_entity"
+      - "tool:list_entities"
+      - "tool:get_neighbors"
+      - "tool:get_canonical"
+      - "intent:reporting"
+      - "intent:know-how"
+      - "tag:sop"
+      - "tag:meeting"
+      - "tag:report"

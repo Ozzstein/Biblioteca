@@ -1,8 +1,11 @@
 ---
-entity_type: project
+entity_type: internal-report
 entity_id: "{{ entity_id }}"
 canonical_name: "{{ canonical_name }}"
 created: "{{ created }}"
+report_id: "{{ report_id }}"
+status: "{{ status }}"
+period_covered: "{{ period_covered }}"
 ---
 
 # {{ canonical_name }}
@@ -12,18 +15,17 @@ created: "{{ created }}"
 
 <!-- human-end: summary -->
 
-## Goals
-<!-- human-start: goals -->
+## Key Metrics
+<!-- auto-start: key-metrics -->
+<!-- auto-end: key-metrics -->
 
-<!-- human-end: goals -->
+## Findings
+<!-- auto-start: findings -->
+<!-- auto-end: findings -->
 
-## Key Materials & Processes
-<!-- auto-start: key-entities -->
-<!-- auto-end: key-entities -->
-
-## Documents
-<!-- auto-start: documents -->
-<!-- auto-end: documents -->
+## Recommendations
+<!-- auto-start: recommendations -->
+<!-- auto-end: recommendations -->
 
 ## Evidence (Literature)
 <!-- auto-start: evidence-literature -->

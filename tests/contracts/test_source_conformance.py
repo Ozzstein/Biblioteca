@@ -32,6 +32,7 @@ from typing import Any
 
 import pytest
 
+from llm_rag.mcp.sources.lab import make_lab_reference_source
 from llm_rag.mcp.sources.mock import make_reference_source
 
 # ---------------------------------------------------------------------------
@@ -47,8 +48,14 @@ def _mock_factory() -> dict[str, Callable[..., Awaitable[Any]]]:
     return make_reference_source().register_tools()
 
 
+def _lab_factory() -> dict[str, Callable[..., Awaitable[Any]]]:
+    """Return tools from a freshly-seeded lab reference source."""
+    return make_lab_reference_source().register_tools()
+
+
 CONFORMANT_SOURCES: list[tuple[str, SourceFactory]] = [
     ("mock", _mock_factory),
+    ("lab", _lab_factory),
 ]
 """Sources to run the suite against. Step 2 will append ``("lab", ...)``;
 the sister project appends its own. Add via ``CONFORMANT_SOURCES.append(...)``

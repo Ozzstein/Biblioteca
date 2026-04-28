@@ -1,8 +1,13 @@
 ---
-entity_type: project
+entity_type: sop
 entity_id: "{{ entity_id }}"
 canonical_name: "{{ canonical_name }}"
 created: "{{ created }}"
+sop_id: "{{ sop_id }}"
+version: "{{ version }}"
+status: "{{ status }}"
+effective_date: "{{ effective_date }}"
+superseded_by: "{{ superseded_by }}"
 ---
 
 # {{ canonical_name }}
@@ -12,18 +17,21 @@ created: "{{ created }}"
 
 <!-- human-end: summary -->
 
-## Goals
-<!-- human-start: goals -->
+## Scope
+<!-- auto-start: scope -->
+<!-- auto-end: scope -->
 
-<!-- human-end: goals -->
+## Procedure Steps
+<!-- auto-start: procedure-steps -->
+<!-- auto-end: procedure-steps -->
 
-## Key Materials & Processes
-<!-- auto-start: key-entities -->
-<!-- auto-end: key-entities -->
+## Equipment
+<!-- auto-start: equipment -->
+<!-- auto-end: equipment -->
 
-## Documents
-<!-- auto-start: documents -->
-<!-- auto-end: documents -->
+## Safety Notes
+<!-- auto-start: safety-notes -->
+<!-- auto-end: safety-notes -->
 
 ## Evidence (Literature)
 <!-- auto-start: evidence-literature -->

@@ -29,6 +29,9 @@ ENTITY_TYPE_TO_TEMPLATE: dict[EntityType, str] = {
     EntityType.FORMULATION: "formulation.md",
     EntityType.CELL: "cell.md",
     EntityType.PROPERTY: "property.md",
+    EntityType.SOP: "sop.md",
+    EntityType.MEETING: "meeting.md",
+    EntityType.INTERNAL_REPORT: "internal-report.md",
 }
 
 

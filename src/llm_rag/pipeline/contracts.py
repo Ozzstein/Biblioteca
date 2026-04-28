@@ -12,6 +12,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from llm_rag.schemas.entities import EntityType, RelationType
+from llm_rag.schemas.provenance import DocType
 
 __all__ = [
     "ClaimCandidate",
@@ -31,7 +32,7 @@ class SourceDocument(BaseModel):
 
     doc_id: str = Field(min_length=1)
     source_path: str = Field(min_length=1)
-    doc_type: str = Field(min_length=1)
+    doc_type: DocType
     content_hash: str = Field(min_length=1)
     ingested_at: datetime
 

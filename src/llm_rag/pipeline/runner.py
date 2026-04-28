@@ -11,7 +11,6 @@ from llm_rag.agent_runner import AgentDefinition, run_agent
 from llm_rag.config import Settings, get_settings
 from llm_rag.mcp.pool import MCPPool
 from llm_rag.pipeline.contracts import (
-    EvidenceChunk,
     ExtractedEntity,
     ExtractedRelation,
     GraphPatch,
@@ -25,7 +24,7 @@ from llm_rag.pipeline.manifest import (
     needs_processing,
     save_manifest,
 )
-from llm_rag.schemas.provenance import DocumentManifest, ProcessingStage
+from llm_rag.schemas.provenance import DocType, DocumentManifest, ProcessingStage
 from llm_rag.utils.retry import is_transient
 
 logger = logging.getLogger(__name__)
@@ -50,7 +49,16 @@ _STAGE_CONTRACTS: dict[ProcessingStage, type[BaseModel] | list[type[BaseModel]]]
     ProcessingStage.GRAPH_UPDATED: GraphPatch,
 }
 
-_KNOWN_DOC_TYPES = {"papers", "reports", "datasets", "simulations", "meetings", "sop"}
+_DOC_TYPE_BY_PARENT: dict[str, DocType] = {
+    "paper": DocType.PAPER,
+    "papers": DocType.PAPER,
+    "report": DocType.REPORT,
+    "reports": DocType.REPORT,
+    "meeting": DocType.MEETING,
+    "meetings": DocType.MEETING,
+    "sop": DocType.SOP,
+    "sops": DocType.SOP,
+}
 
 
 def _extract_json(text: str) -> str | None:
@@ -110,7 +118,7 @@ class PipelineRunner:
             max_tokens=4096,
         )
         self._extraction = AgentDefinition(
-            name="extraction",
+            name="extraction-paper",
             model=self.settings.model_bulk_extraction,
             mcp_servers=["corpus-io"],
             max_tokens=8192,
@@ -153,13 +161,14 @@ class PipelineRunner:
             source_connector="manual",
         )
         doc_id = manifest.doc_id
+        extraction_agent = self._select_extraction_agent(manifest.doc_type)
 
         stages = [
             (ProcessingStage.INGESTED, self._ingestion,
              f"Ingest doc_id={doc_id}, source_path={source_path},"
              f" doc_type={manifest.doc_type},"
              f" source_connector={manifest.source_connector}"),
-            (ProcessingStage.EXTRACTED, self._extraction,
+            (ProcessingStage.EXTRACTED, extraction_agent,
              f"Extract entities and relations from doc_id={doc_id}"),
             (ProcessingStage.NORMALIZED, self._normalization,
              f"Normalize entities in doc_id={doc_id}"),
@@ -178,6 +187,21 @@ class PipelineRunner:
             )
 
         return manifest
+
+    def _select_extraction_agent(self, doc_type: DocType) -> AgentDefinition:
+        prompt_name = {
+            DocType.PAPER: "extraction-paper",
+            DocType.SOP: "extraction-sop",
+            DocType.MEETING: "extraction-meeting",
+            DocType.REPORT: "extraction-report",
+            DocType.UNKNOWN: "extraction-paper",
+        }[doc_type]
+        return AgentDefinition(
+            name=prompt_name,
+            model=self._extraction.model,
+            mcp_servers=list(self._extraction.mcp_servers),
+            max_tokens=self._extraction.max_tokens,
+        )
 
     async def _run_stage_with_retry(
         self,
@@ -304,6 +328,6 @@ class PipelineRunner:
         except ValueError:
             return source_path.stem
 
-    def _infer_doc_type(self, source_path: Path) -> str:
+    def _infer_doc_type(self, source_path: Path) -> DocType:
         parent = source_path.parent.name
-        return parent if parent in _KNOWN_DOC_TYPES else "unknown"
+        return _DOC_TYPE_BY_PARENT.get(parent.lower(), DocType.UNKNOWN)

@@ -8,11 +8,15 @@ from llm_rag.schemas.entities import (
     Entity,
     EntityType,
     ExtractionResult,
+    InternalReport,
     Material,
+    Meeting,
     Relation,
     RelationType,
+    Sop,
 )
 from llm_rag.schemas.provenance import (
+    DocType,
     DocumentManifest,
     ExtractionMethod,
     ProcessingStage,
@@ -88,6 +92,7 @@ def test_document_manifest_defaults():
     assert m.authors == []
     assert m.doi is None
     assert m.error is None
+    assert m.doc_type == DocType.PAPER
 
 
 def test_document_manifest_with_stages():
@@ -103,6 +108,41 @@ def test_document_manifest_with_stages():
     )
     assert ProcessingStage.INGESTED in m.stages_completed
     assert ProcessingStage.WIKI_COMPILED not in m.stages_completed
+
+
+def test_sop_entity_defaults():
+    sop = Sop(
+        entity_id="sop:SOP-001:v1",
+        canonical_name="SOP-001 v1",
+        sop_id="SOP-001",
+        version="v1",
+    )
+    assert sop.entity_type == EntityType.SOP
+    assert sop.status == "unknown"
+    assert sop.deprecated is False
+
+
+def test_meeting_entity_fields():
+    meeting = Meeting(
+        entity_id="meeting:2026-04-27-ops",
+        canonical_name="Ops Sync 2026-04-27",
+        attendees=["alice", "bob"],
+        decisions=["Ship update"],
+        action_items=["Update SOP-001"],
+    )
+    assert meeting.entity_type == EntityType.MEETING
+    assert "alice" in meeting.attendees
+
+
+def test_internal_report_metrics():
+    report = InternalReport(
+        entity_id="internal-report:RPT-022",
+        canonical_name="RPT-022",
+        report_id="RPT-022",
+        key_metrics={"yield": "97.5%"},
+    )
+    assert report.entity_type == EntityType.INTERNAL_REPORT
+    assert report.key_metrics["yield"] == "97.5%"
 
 
 def test_entity_base():
