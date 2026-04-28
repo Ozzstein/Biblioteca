@@ -63,6 +63,14 @@ class Settings(BaseSettings):
     relevance_threshold: float = 0.6
     supervisor_interval_seconds: int = 60
 
+    # Cloudflare Access / gateway
+    cf_access_team_domain: str = Field(default="", alias="CF_ACCESS_TEAM_DOMAIN")
+    cf_access_aud_tag: str = Field(default="", alias="CF_ACCESS_AUD_TAG")
+    gateway_cors_origins: list[str] = Field(
+        default_factory=list,
+        alias="GATEWAY_CORS_ORIGINS",
+    )
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

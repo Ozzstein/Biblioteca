@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -23,7 +23,7 @@ from llm_rag.knowledge.models import (
 from llm_rag.schemas.entities import EntityType, RelationType
 from llm_rag.wiki.materializer import WikiMaterializer
 
-_FIXED_DT = datetime(2026, 4, 20, 12, 0, 0, tzinfo=timezone.utc)
+_FIXED_DT = datetime(2026, 4, 20, 12, 0, 0, tzinfo=UTC)
 
 _MATERIAL_TEMPLATE = """\
 ---

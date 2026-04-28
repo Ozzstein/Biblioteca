@@ -4,8 +4,8 @@ import logging
 import re
 from typing import Any
 
-from pydantic import BaseModel, Field, ValidationError
 from mcp.server.fastmcp import FastMCP
+from pydantic import BaseModel, Field, ValidationError
 
 from llm_rag.agent_runner import ToolResultContractError
 from llm_rag.config import get_settings

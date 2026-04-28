@@ -7,13 +7,11 @@ interfaces continue to work after v2 internals are introduced.
 from __future__ import annotations
 
 import inspect
-import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import networkx as nx
 import pytest
-import typer
 from typer.testing import CliRunner
 
 from llm_rag.cli import app
@@ -119,7 +117,7 @@ class TestCLIFlows:
         result = runner.invoke(app, ["ask", "my question"])
         assert result.exit_code == 0
 
-    @patch("llm_rag.query.agent.QueryAgent.ask", new_callable=AsyncMock)
+    @patch("llm_rag.query.planner.QueryPlanner.ask", new_callable=AsyncMock)
     @patch("llm_rag.mcp.pool.MCPPool.__aexit__", new_callable=AsyncMock)
     @patch("llm_rag.mcp.pool.MCPPool.__aenter__", new_callable=AsyncMock)
     def test_ask_with_mode_option(

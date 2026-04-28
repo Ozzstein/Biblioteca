@@ -1,0 +1,18 @@
+[
+  {
+    "chunk_index": 0,
+    "doc_id": "papers/sample-lfp-001",
+    "page": 1,
+    "section": "introduction",
+    "text": "LFP cathodes show capacity fade after extended cycling.",
+    "token_count": 12
+  },
+  {
+    "chunk_index": 1,
+    "doc_id": "papers/sample-lfp-001",
+    "page": 1,
+    "section": "results",
+    "text": "The dominant failure mechanism is loss of active lithium via SEI growth.",
+    "token_count": 14
+  }
+]

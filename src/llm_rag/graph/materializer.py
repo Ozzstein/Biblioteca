@@ -18,7 +18,6 @@ from llm_rag.graph.normalization import (
     normalize_entity_id,
 )
 from llm_rag.knowledge.models import (
-    Claim,
     ClaimCollection,
     EntityClaim,
     RelationClaim,

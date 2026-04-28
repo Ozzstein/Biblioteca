@@ -24,6 +24,9 @@ class EntityType(StrEnum):
     DATASET = "Dataset"
     EXPERIMENT = "Experiment"
     CLAIM = "Claim"
+    SOP = "SOP"
+    MEETING = "Meeting"
+    INTERNAL_REPORT = "InternalReport"
 
 
 class RelationType(StrEnum):
@@ -73,6 +76,51 @@ class Claim(Entity):
     statement: str
     supported_by: list[str] = Field(default_factory=list)
     contradicted_by: list[str] = Field(default_factory=list)
+
+
+LabStatus = Literal["approved", "draft", "superseded", "unknown"]
+
+
+class Sop(Entity):
+    entity_type: Literal[EntityType.SOP] = EntityType.SOP
+    status: LabStatus = "unknown"
+    effective_date: str | None = None
+    superseded_by: str | None = None
+    ingested_at: datetime | None = None
+    source_url: str | None = None
+    sop_id: str | None = None
+    version: str | None = None
+    supersedes: str | None = None
+    procedure_steps: list[str] = Field(default_factory=list)
+    equipment: list[str] = Field(default_factory=list)
+    safety_notes: str | None = None
+    scope: str | None = None
+    deprecated: bool = False
+
+
+class Meeting(Entity):
+    entity_type: Literal[EntityType.MEETING] = EntityType.MEETING
+    status: LabStatus = "unknown"
+    effective_date: str | None = None
+    superseded_by: str | None = None
+    ingested_at: datetime | None = None
+    source_url: str | None = None
+    attendees: list[str] = Field(default_factory=list)
+    decisions: list[str] = Field(default_factory=list)
+    action_items: list[str] = Field(default_factory=list)
+
+
+class InternalReport(Entity):
+    entity_type: Literal[EntityType.INTERNAL_REPORT] = EntityType.INTERNAL_REPORT
+    status: LabStatus = "unknown"
+    effective_date: str | None = None
+    superseded_by: str | None = None
+    ingested_at: datetime | None = None
+    source_url: str | None = None
+    report_id: str | None = None
+    authors: list[str] = Field(default_factory=list)
+    period_covered: str | None = None
+    key_metrics: dict[str, Any] = Field(default_factory=dict)
 
 
 class Relation(BaseModel):

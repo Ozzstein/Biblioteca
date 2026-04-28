@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import asyncio
-import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 import typer
 
 from llm_rag.config import get_settings
+
+if TYPE_CHECKING:
+    from llm_rag.evidence.models import EvidenceStore
+    from llm_rag.knowledge.models import ClaimCollection
 
 app = typer.Typer(name="llm-rag")
 pipeline_app = typer.Typer(name="pipeline", help="Pipeline processing commands.")
@@ -108,6 +112,17 @@ def status() -> None:
 
 
 @app.command()
+def serve(
+    host: str = typer.Option("127.0.0.1", help="Host interface to bind"),
+    port: int = typer.Option(8443, help="Port to bind"),
+) -> None:
+    """Run the MCP-over-HTTP gateway."""
+    import uvicorn
+
+    uvicorn.run("llm_rag.mcp.gateway:app", host=host, port=port)
+
+
+@app.command()
 def ingest(
     path: str | None = typer.Option(None, help="Path to ingest (e.g. raw/inbox/)"),
     doc_id: str | None = typer.Option(None, "--doc-id", help="Process one specific document by ID"),
@@ -127,27 +142,46 @@ def ingest(
 @app.command()
 def ask(
     question: str = typer.Argument(..., help="The question to ask"),
-    mode: str | None = typer.Option(None, click_type=click.Choice(["wiki", "vector", "graph", "hybrid"], case_sensitive=False), help="Routing mode"),
+    mode: str = typer.Option(
+        "auto",
+        click_type=click.Choice(
+            ["wiki", "vector", "graph", "hybrid", "auto"],
+            case_sensitive=False,
+        ),
+        help="Routing mode",
+    ),
     quality: bool = typer.Option(False, help="Use Opus for deep analysis"),
     verbose: bool = typer.Option(False, help="Show retrieval trace + provenance citations"),
 ) -> None:
     """Ask a question against the knowledge base."""
-    async def _run_query() -> "QueryResult":
+    async def _run_query():
         from llm_rag.mcp.pool import MCPPool
-        from llm_rag.query.agent import QueryAgent
+        from llm_rag.query.planner import QueryPlanner
 
         settings = get_settings()
-        agent = QueryAgent(settings)
+        planner = QueryPlanner(settings)
         async with MCPPool() as pool:
-            return await agent.ask(question, pool)
+            result = await planner.ask(question, pool, mode=mode.lower(), quality=quality)
+            return result, planner.last_plan
 
     try:
-        query_result = asyncio.run(_run_query())
+        query_payload = asyncio.run(_run_query())
     except Exception as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise SystemExit(1)
+    if isinstance(query_payload, tuple):
+        query_result, query_plan = query_payload
+    else:
+        query_result = query_payload
+        query_plan = None
 
     typer.echo(query_result.answer)
+    if verbose and query_plan is not None:
+        typer.echo("")
+        typer.echo("## Retrieval")
+        typer.echo(f"- intent: {query_plan.intent.value}")
+        typer.echo(f"- mode: {query_plan.mode.value}")
+        typer.echo(f"- confidence: {query_plan.confidence:.2f}")
     if query_result.sources:
         typer.echo("")
         typer.echo("## Sources")
@@ -161,7 +195,7 @@ materialize_app = typer.Typer(name="materialize", help="Rebuild derived surfaces
 app.add_typer(materialize_app, name="materialize")
 
 
-def _load_claims(input_dir: Path) -> list["ClaimCollection"]:
+def _load_claims(input_dir: Path) -> list[ClaimCollection]:
     """Load all ClaimCollection JSON files from a directory."""
     import json
 
@@ -181,7 +215,7 @@ def _load_claims(input_dir: Path) -> list["ClaimCollection"]:
     return collections
 
 
-def _load_evidence(input_dir: Path) -> list["EvidenceStore"]:
+def _load_evidence(input_dir: Path) -> list[EvidenceStore]:
     """Load all EvidenceStore JSON files from a directory."""
     import json
 
@@ -255,7 +289,7 @@ def _run_materialize_wiki(
     )
 
     # Build a lookup of evidence by doc_id
-    evidence_by_doc: dict[str, "EvidenceStore"] = {}
+    evidence_by_doc: dict[str, EvidenceStore] = {}
     for es in evidence_stores:
         evidence_by_doc[es.document.doc_id] = es
 
@@ -578,7 +612,7 @@ def supervisor_start(
                     timeout=ShutdownManager.SHUTDOWN_TIMEOUT,
                 )
             )
-        except (TimeoutError, asyncio.TimeoutError):
+        except TimeoutError:
             cli_logger.warning("Shutdown timed out after %ss — forcing exit", ShutdownManager.SHUTDOWN_TIMEOUT)
 
         watcher.stop()

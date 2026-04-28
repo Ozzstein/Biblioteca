@@ -1,0 +1,62 @@
+# MCP source-server registry — federation contract v0.1
+#
+# Each entry declares one MCP source server: how to spawn it, what backend
+# transport to use, and which capabilities it advertises. The MCPPool reads
+# this file and spawns one subprocess per source.
+#
+# In Step 1 of the V2 lab-knowledge plan, only ``literature`` is registered.
+# Step 2 adds ``lab`` (SOPs / meetings / internal reports). The future sister
+# experimental-data project plugs in by adding its own entry here pointing at
+# its remote MCP endpoint.
+#
+# Schema (frozen at v0.1):
+#   protocol_version: required string, semver
+#   sources: required list of source entries
+#     name: required string, unique within the file
+#     backend: required, one of {stdio, http}
+#     command: required for stdio backend, list of strings (argv)
+#     url: required for http backend, string
+#     env: optional dict of extra environment variables
+#     capabilities: optional list of capability strings (informational at v0.1;
+#                   used by the gateway from Step 4 to plan intent routing)
+
+protocol_version: "0.1"
+
+sources:
+  - name: literature
+    backend: stdio
+    command: ["python", "-m", "llm_rag.mcp.sources.literature"]
+    capabilities:
+      - "tool:get_chunks"
+      - "tool:search_chunks"
+      - "tool:get_manifest"
+      - "tool:read_page"
+      - "tool:list_pages"
+      - "tool:get_template"
+      - "tool:get_entity"
+      - "tool:list_entities"
+      - "tool:get_neighbors"
+      - "tool:get_canonical"
+      - "intent:reporting"
+      - "intent:know-how"
+      - "intent:insight"
+      - "tag:paper"
+  - name: lab
+    backend: stdio
+    command: ["python", "-m", "llm_rag.mcp.sources.lab"]
+    capabilities:
+      - "tool:get_chunks"
+      - "tool:search_chunks"
+      - "tool:get_manifest"
+      - "tool:read_page"
+      - "tool:list_pages"
+      - "tool:get_template"
+      - "tool:get_entity"
+      - "tool:list_entities"
+      - "tool:get_neighbors"
+      - "tool:get_canonical"
+      - "intent:reporting"
+      - "intent:know-how"
+      - "tag:sop"
+      - "tag:meeting"
+      - "tag:report"

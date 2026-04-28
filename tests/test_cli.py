@@ -1,8 +1,8 @@
 """Tests for the llm-rag CLI shell."""
 
+import subprocess
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
-import subprocess
 
 import typer
 from typer.testing import CliRunner
@@ -72,11 +72,11 @@ def test_ask_command_calls_query_agent(mock_asyncio_run):
     mock_asyncio_run.assert_called_once()
 
 
-@patch("llm_rag.query.agent.QueryAgent.ask", new_callable=AsyncMock)
+@patch("llm_rag.query.planner.QueryPlanner.ask", new_callable=AsyncMock)
 @patch("llm_rag.mcp.pool.MCPPool.__aexit__", new_callable=AsyncMock)
 @patch("llm_rag.mcp.pool.MCPPool.__aenter__", new_callable=AsyncMock)
 def test_ask_command_displays_answer_and_sources(mock_enter, mock_exit, mock_ask):
-    """ask command displays the answer and sources from QueryAgent."""
+    """ask command displays the answer and sources from QueryPlanner."""
     mock_enter.return_value = MagicMock()
     mock_ask.return_value = QueryResult(
         answer="LFP capacity fade is caused by SEI growth.",
@@ -91,7 +91,7 @@ def test_ask_command_displays_answer_and_sources(mock_enter, mock_exit, mock_ask
     assert "- papers/lfp-002 §1.1" in result.output
 
 
-@patch("llm_rag.query.agent.QueryAgent.ask", new_callable=AsyncMock)
+@patch("llm_rag.query.planner.QueryPlanner.ask", new_callable=AsyncMock)
 @patch("llm_rag.mcp.pool.MCPPool.__aexit__", new_callable=AsyncMock)
 @patch("llm_rag.mcp.pool.MCPPool.__aenter__", new_callable=AsyncMock)
 def test_ask_command_no_sources(mock_enter, mock_exit, mock_ask):
@@ -103,6 +103,21 @@ def test_ask_command_no_sources(mock_enter, mock_exit, mock_ask):
     assert result.exit_code == 0
     assert "No relevant information found." in result.output
     assert "## Sources" not in result.output
+
+
+@patch("llm_rag.query.planner.QueryPlanner.ask", new_callable=AsyncMock)
+@patch("llm_rag.mcp.pool.MCPPool.__aexit__", new_callable=AsyncMock)
+@patch("llm_rag.mcp.pool.MCPPool.__aenter__", new_callable=AsyncMock)
+def test_ask_command_passes_mode_and_quality(mock_enter, mock_exit, mock_ask):
+    mock_enter.return_value = MagicMock()
+    mock_ask.return_value = QueryResult(answer="Routed answer.")
+
+    result = runner.invoke(app, ["ask", "draft a report", "--mode", "auto", "--quality"])
+
+    assert result.exit_code == 0
+    assert "Routed answer." in result.output
+    assert mock_ask.call_args.kwargs["mode"] == "auto"
+    assert mock_ask.call_args.kwargs["quality"] is True
 
 
 @patch("llm_rag.cli.asyncio.run", side_effect=RuntimeError("connection failed"))

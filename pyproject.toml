@@ -27,6 +27,10 @@ dependencies = [
     "pyyaml>=6.0.0",
     "mcp>=1.0.0",
     "claude-code-sdk>=0.0.25",
+    "fastapi>=0.136.1",
+    "uvicorn[standard]>=0.44.0",
+    "pyjwt[crypto]>=2.12.1",
+    "filelock>=3.0",
 ]
 
 [project.optional-dependencies]
@@ -40,8 +44,6 @@ scholar = [
     "google-search-results>=2.4.2",
 ]
 web = [
-    "fastapi>=0.109.0",
-    "uvicorn[standard]>=0.27.0",
     "python-multipart>=0.0.6",
 ]
 
@@ -50,6 +52,8 @@ llm-rag = "llm_rag.cli:app"
 llm-rag-corpus-io = "llm_rag.mcp.corpus_io:main"
 llm-rag-wiki-io = "llm_rag.mcp.wiki_io:main"
 llm-rag-graph-io = "llm_rag.mcp.graph_io:main"
+llm-rag-literature = "llm_rag.mcp.sources.literature:main"
+llm-rag-lab = "llm_rag.mcp.sources.lab:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/llm_rag"]

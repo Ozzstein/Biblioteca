@@ -66,3 +66,24 @@ processes:
       - CR2032 assembly
       - half-cell assembly
       - coin cell fabrication
+
+sop_aliases:
+  SOP-001:
+    entity_id: "sop:SOP-001"
+    aliases:
+      - Standard Operating Procedure 001
+      - SOP 001
+
+project_codenames:
+  atlas:
+    entity_id: "project:atlas"
+    aliases:
+      - Project Atlas
+      - ATLAS
+
+internal_nicknames:
+  lfp_pilot_line:
+    entity_id: "process:lfp-pilot-line"
+    aliases:
+      - pilot line
+      - line 2

@@ -1,41 +1,46 @@
 version: "3.9"
 
 services:
-  biblioteca:
+  gateway:
     build: .
-    container_name: biblioteca
+    container_name: biblioteca-gateway
     restart: unless-stopped
-    network_mode: host
-    volumes:
-      - ~/.biblioteca:/app/data
+    ports:
+      - "8443:8443"
     environment:
-      - BIBLIOTECA_HOME=/app/data
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
-    command: ["web", "run"]
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY:-}
+      - CF_ACCESS_TEAM_DOMAIN=${CF_ACCESS_TEAM_DOMAIN:-}
+      - CF_ACCESS_AUD_TAG=${CF_ACCESS_AUD_TAG:-}
+      - GATEWAY_CORS_ORIGINS=${GATEWAY_CORS_ORIGINS:-[]}
+      - PYTHONPATH=/app/src
+      - ROOT_DIR=/app
+    command: ["uv", "run", "llm-rag", "serve", "--host", "0.0.0.0", "--port", "8443"]
+    depends_on:
+      - chroma
 
-# Alternative: Separate backend and frontend
-# services:
-#   backend:
-#     build: .
-#     container_name: biblioteca-backend
-#     restart: unless-stopped
-#     network_mode: host
-#     volumes:
-#       - ~/.biblioteca:/app/data
-#     environment:
-#       - BIBLIOTECA_HOME=/app/data
-#       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-#       - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
-#     command: ["web", "backend"]
-#
-#   frontend:
-#     build:
-#       context: .
-#       dockerfile: Dockerfile.frontend
-#     container_name: biblioteca-frontend
-#     restart: unless-stopped
-#     ports:
-#       - "5173:5173"
-#     depends_on:
-#       - backend
+  dashboard:
+    build: .
+    container_name: biblioteca-dashboard
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - CF_ACCESS_TEAM_DOMAIN=${CF_ACCESS_TEAM_DOMAIN:-}
+      - CF_ACCESS_AUD_TAG=${CF_ACCESS_AUD_TAG:-}
+      - PYTHONPATH=/app/src
+      - BIBLIOTECA_HOME=/app
+    command:
+      ["uv", "run", "python", "-m", "uvicorn", "web.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: biblioteca-chroma
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+
+volumes:
+  chroma-data:

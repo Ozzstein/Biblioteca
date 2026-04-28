@@ -1,0 +1,17 @@
+{
+  "chunks_processed": 2,
+  "doc_id": "papers/sample-lfp-001",
+  "entities": [
+    {
+      "aliases": [
+        "lithium iron phosphate"
+      ],
+      "canonical_name": "LFP",
+      "entity_id": "material:lfp",
+      "entity_type": "Material"
+    }
+  ],
+  "extracted_at": "2026-04-01T00:05:00Z",
+  "extraction_model": "claude-haiku-4-5-20251001",
+  "relations": []
+}

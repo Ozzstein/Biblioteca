@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
-from llm_rag.schemas.provenance import DocumentManifest, FailedStageRecord, ProcessingStage
+from llm_rag.schemas.provenance import DocType, DocumentManifest, FailedStageRecord, ProcessingStage
 from llm_rag.utils.hashing import content_hash
 
 
@@ -29,7 +29,7 @@ def save_manifest(manifest: DocumentManifest) -> None:
 def create_manifest(
     source_path: Path,
     doc_id: str,
-    doc_type: str,
+    doc_type: DocType | str,
     source_connector: str,
 ) -> DocumentManifest:
     """Create a new manifest for a source file."""

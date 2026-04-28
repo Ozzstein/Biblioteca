@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from llm_rag.graph.materializer import GraphMaterializer
 from llm_rag.knowledge.models import (
     ClaimCollection,
@@ -11,7 +9,6 @@ from llm_rag.knowledge.models import (
     RelationClaim,
 )
 from llm_rag.schemas.entities import EntityType, RelationType
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

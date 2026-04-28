@@ -25,9 +25,13 @@ created: "{{ created }}"
 <!-- auto-start: documents -->
 <!-- auto-end: documents -->
 
-## Evidence
-<!-- auto-start: evidence -->
-<!-- auto-end: evidence -->
+## Evidence (Literature)
+<!-- auto-start: evidence-literature -->
+<!-- auto-end: evidence-literature -->
+
+## Evidence (Lab)
+<!-- auto-start: evidence-lab -->
+<!-- auto-end: evidence-lab -->
 
 ## Open Questions
 <!-- human-start: open-questions -->

@@ -1,0 +1,17 @@
+[
+  {
+    "canonical_name": "LFP",
+    "entity_id": "material:lfp",
+    "entity_type": "Material"
+  },
+  {
+    "canonical_name": "SEI",
+    "entity_id": "mechanism:sei",
+    "entity_type": "FailureMechanism"
+  },
+  {
+    "canonical_name": "Alpha",
+    "entity_id": "project:alpha",
+    "entity_type": "Project"
+  }
+]

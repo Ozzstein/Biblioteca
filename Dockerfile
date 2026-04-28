@@ -15,7 +15,12 @@ RUN pip install uv
 # Copy project files
 COPY pyproject.toml uv.lock* ./
 COPY src/ ./src/
+COPY config/ ./config/
+COPY graph/ ./graph/
+COPY raw/ ./raw/
+COPY retrieval/ ./retrieval/
 COPY web/ ./web/
+COPY wiki/ ./wiki/
 
 # Install dependencies
 RUN uv sync --extra web

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -36,8 +36,8 @@ async def test_runner_runs_all_five_stages_for_new_doc(settings: object, source_
         MockPool.return_value = mock_pool
         # Return valid JSON for each stage (keyed by agent definition name)
         stage_responses = {
-            "ingestion": '{"doc_id": "test", "source_path": "/test.md", "doc_type": "papers", "content_hash": "abc", "ingested_at": "2026-04-24T00:00:00"}',
-            "extraction": '[{"entity_id": "e1", "name": "LFP", "entity_type": "Material", "aliases": [], "source_chunks": [], "confidence": 0.9}]',
+            "ingestion": '{"doc_id": "test", "source_path": "/test.md", "doc_type": "paper", "content_hash": "abc", "ingested_at": "2026-04-24T00:00:00"}',
+            "extraction-paper": '[{"entity_id": "e1", "name": "LFP", "entity_type": "Material", "aliases": [], "source_chunks": [], "confidence": 0.9}]',
             "normalization": '[{"entity_id": "e1", "name": "LFP", "entity_type": "Material", "aliases": [], "source_chunks": [], "confidence": 0.9}]',
             "wiki_compiler": '{"entity_id": "e1", "title": "LFP", "sections": {}, "auto_sections": [], "human_sections": []}',
             "graph_curator": '{"add_nodes": [], "add_edges": [], "remove_nodes": [], "remove_edges": []}',
@@ -83,8 +83,8 @@ async def test_runner_force_runs_all_stages(settings: object, source_file: Path,
         MockPool.return_value = mock_pool
         # Return valid JSON for each stage
         stage_responses = {
-            "ingestion": '{"doc_id": "test", "source_path": "/test.md", "doc_type": "papers", "content_hash": "abc", "ingested_at": "2026-04-24T00:00:00"}',
-            "extraction": '[{"entity_id": "e1", "name": "LFP", "entity_type": "Material", "aliases": [], "source_chunks": [], "confidence": 0.9}]',
+            "ingestion": '{"doc_id": "test", "source_path": "/test.md", "doc_type": "paper", "content_hash": "abc", "ingested_at": "2026-04-24T00:00:00"}',
+            "extraction-paper": '[{"entity_id": "e1", "name": "LFP", "entity_type": "Material", "aliases": [], "source_chunks": [], "confidence": 0.9}]',
             "normalization": '[{"entity_id": "e1", "name": "LFP", "entity_type": "Material", "aliases": [], "source_chunks": [], "confidence": 0.9}]',
             "wiki_compiler": '{"entity_id": "e1", "title": "LFP", "sections": {}, "auto_sections": [], "human_sections": []}',
             "graph_curator": '{"add_nodes": [], "add_edges": [], "remove_nodes": [], "remove_edges": []}',

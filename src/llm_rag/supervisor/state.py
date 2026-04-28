@@ -6,7 +6,7 @@ import json
 import os
 import signal
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
 
@@ -91,7 +91,7 @@ class SupervisorState:
         if not self.last_heartbeat:
             return float("inf")
         last = datetime.fromisoformat(self.last_heartbeat)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return (now - last).total_seconds()
 
     def is_healthy(self, threshold_seconds: float = 60.0) -> bool:
@@ -214,7 +214,7 @@ def is_running(pid_file: Path = PID_FILE) -> bool:
 
 
 def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def send_stop_signal(pid_file: Path = PID_FILE) -> bool:

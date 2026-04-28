@@ -1,0 +1,20 @@
+tunnel: biblioteca-gateway
+credentials-file: /etc/cloudflared/biblioteca-gateway.json
+
+ingress:
+  - hostname: biblioteca-gateway.example.com
+    service: http://gateway:8443
+  - hostname: biblioteca-dashboard.example.com
+    service: http://dashboard:8000
+  - service: http_status:404
+
+# Cloudflare Access setup:
+# 1. Create one Access application for the gateway hostname and one for the
+#    dashboard hostname, or a shared application that covers both hostnames.
+# 2. Set CF_ACCESS_TEAM_DOMAIN to your Access team domain, for example
+#    yourorg.cloudflareaccess.com.
+# 3. Set CF_ACCESS_AUD_TAG to the AUD tag shown on the Access application.
+# 4. For writing-app machines, create a Cloudflare Access service token and pass
+#    it to Cloudflare via CF-Access-Client-Id and CF-Access-Client-Secret.
+#    Cloudflare injects Cf-Access-Jwt-Assertion after the service token is
+#    accepted; the gateway validates that JWT.
